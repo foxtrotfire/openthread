@@ -58,6 +58,7 @@ WPAN_NCP_VERSION                               = 'NCP:Version'
 WPAN_NCP_MCU_POWER_STATE                       = "NCP:MCUPowerState"
 WPAN_NETWORK_ALLOW_JOIN                        = 'com.nestlabs.internal:Network:AllowingJoin'
 WPAN_NETWORK_PASSTHRU_PORT                     = 'com.nestlabs.internal:Network:PassthruPort'
+WPAN_RCP_VERSION                               = "POSIXApp:RCPVersion"
 
 WPAN_IP6_LINK_LOCAL_ADDRESS                    = "IPv6:LinkLocalAddress"
 WPAN_IP6_MESH_LOCAL_ADDRESS                    = "IPv6:MeshLocalAddress"
@@ -298,11 +299,11 @@ class Node(object):
         # Check if env variable `TORANJ_POSIX_APP_RCP_MODEL` is defined
         # and use it to determine if to use operate in "posix-ncp-app".
         if self._POSIX_APP_ENV_VAR in os.environ:
-            use_posix_app_with_rcp = (os.environ[self._POSIX_APP_ENV_VAR] in ['1', 'yes'])
+            self._use_posix_app_with_rcp = (os.environ[self._POSIX_APP_ENV_VAR] in ['1', 'yes'])
         else:
-            use_posix_app_with_rcp = False
+            self._use_posix_app_with_rcp = False
 
-        if use_posix_app_with_rcp:
+        if self._use_posix_app_with_rcp:
             ncp_socket_path = 'system:{} -s {} {} {}'.format(self._OT_NCP_FTD_POSIX_APP, self._SPEED_UP_FACTOR,
                 self._OT_NCP_RADIO, index)
         else:
@@ -349,6 +350,10 @@ class Node(object):
     @property
     def tund_log_file(self):
         return self._tund_log_file
+
+    @property
+    def using_posix_app_with_rcp(self):
+        return self._use_posix_app_with_rcp
 
     #------------------------------------------------------------------------------------------------------------------
     # Executing a `wpanctl` command
@@ -490,6 +495,18 @@ class Node(object):
         return self.wpanctl('remove-route ' + route_prefix +
                             (' -l {}'.format(prefix_len) if prefix_len is not None else '') +
                             (' -p {}'.format(priority) if priority is not None else ''))
+
+    def commissioner_start(self):
+        return self.wpanctl('commissioner start')
+
+    def commissioner_add_joiner(self, eui64, pskd, timeout = '100'):
+        return self.wpanctl('commissioner joiner-add {} {} {}'.format(eui64, timeout, pskd))
+
+    def joiner_join(self, pskd):
+        return self.wpanctl('joiner --join {}'.format(pskd))
+
+    def joiner_attach(self):
+        return self.wpanctl('joiner --attach')
 
     #------------------------------------------------------------------------------------------------------------------
     # Helper methods

@@ -57,6 +57,9 @@
 #if OPENTHREAD_FTD
 #include <openthread/thread_ftd.h>
 #endif
+#if OPENTHREAD_ENABLE_SERVICE
+#include <openthread/server.h>
+#endif
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -202,11 +205,6 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_FREQ>(void)
     }
 
     return mEncoder.WriteUint32(freq_khz);
-}
-
-template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_CHAN_SUPPORTED>(void)
-{
-    return EncodeChannelMask(otLinkGetPhySupportedChannelMask(mInstance));
 }
 
 template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_PHY_CHAN_SUPPORTED>(void)
@@ -818,6 +816,140 @@ exit:
 }
 #endif // OPENTHREAD_ENABLE_BORDER_ROUTER
 
+#if OPENTHREAD_ENABLE_SERVICE
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_SERVER_ALLOW_LOCAL_DATA_CHANGE>(void)
+{
+    return mEncoder.WriteBool(mAllowLocalServerDataChange);
+}
+
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_SERVER_ALLOW_LOCAL_DATA_CHANGE>(void)
+{
+    bool    value                    = false;
+    otError error                    = OT_ERROR_NONE;
+    bool    shouldRegisterWithLeader = false;
+
+    SuccessOrExit(error = mDecoder.ReadBool(value));
+
+    // Register any server data changes on transition from `true` to `false`.
+    shouldRegisterWithLeader = (mAllowLocalServerDataChange == true) && (value == false);
+
+    mAllowLocalServerDataChange = value;
+
+exit:
+
+    if (shouldRegisterWithLeader)
+    {
+        otServerRegister(mInstance);
+    }
+
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertyInsert<SPINEL_PROP_SERVER_SERVICES>(void)
+{
+    otError         error = OT_ERROR_NONE;
+    otServiceConfig cfg;
+    bool            stable;
+    const uint8_t * data;
+    uint16_t        dataLen;
+
+    VerifyOrExit(mAllowLocalServerDataChange == true, error = OT_ERROR_INVALID_STATE);
+
+    SuccessOrExit(error = mDecoder.ReadUint32(cfg.mEnterpriseNumber));
+    SuccessOrExit(error = mDecoder.ReadDataWithLen(data, dataLen));
+
+    VerifyOrExit((dataLen <= sizeof(cfg.mServiceData)), error = OT_ERROR_INVALID_ARGS);
+    memcpy(cfg.mServiceData, data, dataLen);
+
+    OT_STATIC_ASSERT((sizeof(cfg.mServiceData) <= UINT8_MAX), "Cannot handle full range of buffer length");
+    cfg.mServiceDataLength = static_cast<uint8_t>(dataLen);
+
+    SuccessOrExit(error = mDecoder.ReadBool(stable));
+    cfg.mServerConfig.mStable = stable;
+    SuccessOrExit(error = mDecoder.ReadDataWithLen(data, dataLen));
+
+    VerifyOrExit((dataLen <= sizeof(cfg.mServerConfig.mServerData)), error = OT_ERROR_INVALID_ARGS);
+    memcpy(cfg.mServerConfig.mServerData, data, dataLen);
+
+    OT_STATIC_ASSERT((sizeof(cfg.mServerConfig.mServerData) <= UINT8_MAX), "Cannot handle full range of buffer length");
+    cfg.mServerConfig.mServerDataLength = static_cast<uint8_t>(dataLen);
+
+    SuccessOrExit(error = otServerAddService(mInstance, &cfg));
+exit:
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertyRemove<SPINEL_PROP_SERVER_SERVICES>(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    uint32_t       enterpriseNumber;
+    const uint8_t *serviceData;
+    uint16_t       serviceDataLength;
+
+    VerifyOrExit(mAllowLocalServerDataChange == true, error = OT_ERROR_INVALID_STATE);
+
+    SuccessOrExit(error = mDecoder.ReadUint32(enterpriseNumber));
+    SuccessOrExit(error = mDecoder.ReadDataWithLen(serviceData, serviceDataLength));
+
+    VerifyOrExit(serviceDataLength <= UINT8_MAX, error = OT_ERROR_INVALID_ARGS);
+
+    SuccessOrExit(error = otServerRemoveService(mInstance, enterpriseNumber, serviceData,
+                                                static_cast<uint8_t>(serviceDataLength)));
+exit:
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_SERVER_SERVICES>(void)
+{
+    otError               error    = OT_ERROR_NONE;
+    otNetworkDataIterator iterator = OT_NETWORK_DATA_ITERATOR_INIT;
+    otServiceConfig       cfg;
+
+    while (otServerGetNextService(mInstance, &iterator, &cfg) == OT_ERROR_NONE)
+    {
+        SuccessOrExit(error = mEncoder.OpenStruct());
+
+        SuccessOrExit(error = mEncoder.WriteUint32(cfg.mEnterpriseNumber));
+        SuccessOrExit(error = mEncoder.WriteDataWithLen(cfg.mServiceData, cfg.mServiceDataLength));
+        SuccessOrExit(error = mEncoder.WriteBool(cfg.mServerConfig.mStable));
+        SuccessOrExit(
+            error = mEncoder.WriteDataWithLen(cfg.mServerConfig.mServerData, cfg.mServerConfig.mServerDataLength));
+        SuccessOrExit(error = mEncoder.WriteUint16(cfg.mServerConfig.mRloc16));
+
+        SuccessOrExit(error = mEncoder.CloseStruct());
+    }
+exit:
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_SERVER_LEADER_SERVICES>(void)
+{
+    otError               error    = OT_ERROR_NONE;
+    otNetworkDataIterator iterator = OT_NETWORK_DATA_ITERATOR_INIT;
+    otServiceConfig       cfg;
+
+    while (otServerGetNextLeaderService(mInstance, &iterator, &cfg) == OT_ERROR_NONE)
+    {
+        SuccessOrExit(error = mEncoder.OpenStruct());
+
+        SuccessOrExit(error = mEncoder.WriteUint8(cfg.mServiceID));
+        SuccessOrExit(error = mEncoder.WriteUint32(cfg.mEnterpriseNumber));
+        SuccessOrExit(error = mEncoder.WriteDataWithLen(cfg.mServiceData, cfg.mServiceDataLength));
+        SuccessOrExit(error = mEncoder.WriteBool(cfg.mServerConfig.mStable));
+        SuccessOrExit(
+            error = mEncoder.WriteDataWithLen(cfg.mServerConfig.mServerData, cfg.mServerConfig.mServerDataLength));
+        SuccessOrExit(error = mEncoder.WriteUint16(cfg.mServerConfig.mRloc16));
+
+        SuccessOrExit(error = mEncoder.CloseStruct());
+    }
+exit:
+    return error;
+}
+
+#endif // OPENTHREAD_ENABLE_SERVICE
+
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_DISCOVERY_SCAN_JOINER_FLAG>(void)
 {
     return mEncoder.WriteBool(mDiscoveryScanJoinerFlag);
@@ -1309,29 +1441,102 @@ exit:
 #if OPENTHREAD_ENABLE_JOINER
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_MESHCOP_JOINER_STATE>(void)
 {
-    return mEncoder.WriteUint8(static_cast<uint8_t>(otJoinerGetState(mInstance)));
+    spinel_meshcop_joiner_state_t state = SPINEL_MESHCOP_JOINER_STATE_IDLE;
+
+    switch (otJoinerGetState(mInstance))
+    {
+    case OT_JOINER_STATE_IDLE:
+        state = SPINEL_MESHCOP_JOINER_STATE_IDLE;
+        break;
+    case OT_JOINER_STATE_DISCOVER:
+        state = SPINEL_MESHCOP_JOINER_STATE_DISCOVER;
+        break;
+    case OT_JOINER_STATE_CONNECT:
+        state = SPINEL_MESHCOP_JOINER_STATE_CONNECTING;
+        break;
+    case OT_JOINER_STATE_CONNECTED:
+        state = SPINEL_MESHCOP_JOINER_STATE_CONNECTED;
+        break;
+    case OT_JOINER_STATE_ENTRUST:
+        state = SPINEL_MESHCOP_JOINER_STATE_ENTRUST;
+        break;
+    case OT_JOINER_STATE_JOINED:
+        state = SPINEL_MESHCOP_JOINER_STATE_JOINED;
+        break;
+    }
+
+    return mEncoder.WriteUint8(state);
 }
 
 template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_MESHCOP_JOINER_COMMISSIONING>(void)
 {
+    otError     error           = OT_ERROR_NONE;
     bool        action          = false;
     const char *psk             = NULL;
     const char *provisioningUrl = NULL;
-    otError     error           = OT_ERROR_NONE;
+    const char *vendorName      = NULL;
+    const char *vendorModel     = NULL;
+    const char *vendorSwVersion = NULL;
+    const char *vendorData      = NULL;
 
     SuccessOrExit(error = mDecoder.ReadBool(action));
-    SuccessOrExit(error = mDecoder.ReadUtf8(psk));
-    SuccessOrExit(error = mDecoder.ReadUtf8(provisioningUrl));
 
-    if (action)
-    {
-        error = otJoinerStart(mInstance, psk, provisioningUrl, PACKAGE_NAME, OPENTHREAD_CONFIG_PLATFORM_INFO,
-                              PACKAGE_VERSION, NULL, &NcpBase::HandleJoinerCallback_Jump, this);
-    }
-    else
+    if (action == false)
     {
         error = otJoinerStop(mInstance);
+        ExitNow();
     }
+
+    SuccessOrExit(error = mDecoder.ReadUtf8(psk));
+
+    // Parse optional fields
+
+    if (!mDecoder.IsAllReadInStruct())
+    {
+        SuccessOrExit(error = mDecoder.ReadUtf8(provisioningUrl));
+    }
+
+    if (!mDecoder.IsAllReadInStruct())
+    {
+        SuccessOrExit(error = mDecoder.ReadUtf8(vendorName));
+    }
+
+    if (!mDecoder.IsAllReadInStruct())
+    {
+        SuccessOrExit(error = mDecoder.ReadUtf8(vendorModel));
+    }
+
+    if (!mDecoder.IsAllReadInStruct())
+    {
+        SuccessOrExit(error = mDecoder.ReadUtf8(vendorSwVersion));
+    }
+
+    if (!mDecoder.IsAllReadInStruct())
+    {
+        SuccessOrExit(error = mDecoder.ReadUtf8(vendorData));
+    }
+
+    // Use OpenThread default values for vendor name, mode, sw version if
+    // not specified or an empty string is given.
+
+    if ((vendorName == NULL) || (vendorName[0] == 0))
+    {
+        vendorName = PACKAGE_NAME;
+    }
+
+    if ((vendorModel == NULL) || (vendorModel[0] == 0))
+    {
+        vendorModel = OPENTHREAD_CONFIG_PLATFORM_INFO;
+    }
+
+    if ((vendorSwVersion == NULL) || (vendorSwVersion[0] == 0))
+    {
+        vendorSwVersion = PACKAGE_VERSION;
+    }
+
+    error = otJoinerStart(mInstance, psk, provisioningUrl, vendorName, vendorModel, vendorSwVersion, vendorData,
+                          &NcpBase::HandleJoinerCallback_Jump, this);
+
 exit:
     return error;
 }
@@ -1928,10 +2133,17 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CHANNEL_MONITOR_SAMPL
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CHANNEL_MONITOR_CHANNEL_OCCUPANCY>(void)
 {
-    otError error = OT_ERROR_NONE;
+    otError  error       = OT_ERROR_NONE;
+    uint32_t channelMask = otLinkGetSupportedChannelMask(mInstance);
+    uint8_t  channelNum  = sizeof(channelMask) * CHAR_BIT;
 
-    for (uint8_t channel = otLinkGetPhyChannelMin(mInstance); channel <= otLinkGetPhyChannelMax(mInstance); channel++)
+    for (uint8_t channel = 0; channel < channelNum; channel++)
     {
+        if (!((1UL << channel) & channelMask))
+        {
+            continue;
+        }
+
         SuccessOrExit(error = mEncoder.OpenStruct());
 
         SuccessOrExit(error = mEncoder.WriteUint8(channel));
@@ -2824,14 +3036,14 @@ exit:
 
 #endif // OPENTHREAD_ENABLE_MAC_FILTER
 
-#if OPENTHREAD_ENABLE_POSIX_APP
+#if OPENTHREAD_PLATFORM_POSIX_APP
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_RCP_VERSION>(void)
 {
     return mEncoder.WriteUtf8(otGetRadioVersionString(mInstance));
 }
 
-#endif // OPENTHREAD_ENABLE_POSIX_APP
+#endif
 
 #if OPENTHREAD_CONFIG_ENABLE_SLAAC
 

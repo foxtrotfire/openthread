@@ -47,6 +47,7 @@
 #include <openthread/icmp6.h>
 #include <openthread/joiner.h>
 #include <openthread/link.h>
+#include <openthread/ncp.h>
 #include <openthread/thread.h>
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
 #include <openthread/network_time.h>
@@ -112,6 +113,7 @@ const struct Command Interpreter::sCommands[] = {
     {"channel", &Interpreter::ProcessChannel},
 #if OPENTHREAD_FTD
     {"child", &Interpreter::ProcessChild},
+    {"childip", &Interpreter::ProcessChildIp},
     {"childmax", &Interpreter::ProcessChildMax},
 #endif
     {"childtimeout", &Interpreter::ProcessChildTimeout},
@@ -553,16 +555,25 @@ void Interpreter::ProcessChannel(int argc, char *argv[])
             mServer->OutputFormat("enabled: %d\r\n", otChannelMonitorIsEnabled(mInstance));
             if (otChannelMonitorIsEnabled(mInstance))
             {
+                uint32_t channelMask = otLinkGetSupportedChannelMask(mInstance);
+                uint8_t  channelNum  = sizeof(channelMask) * CHAR_BIT;
+
                 mServer->OutputFormat("interval: %lu\r\n", otChannelMonitorGetSampleInterval(mInstance));
                 mServer->OutputFormat("threshold: %d\r\n", otChannelMonitorGetRssiThreshold(mInstance));
                 mServer->OutputFormat("window: %lu\r\n", otChannelMonitorGetSampleWindow(mInstance));
                 mServer->OutputFormat("count: %lu\r\n", otChannelMonitorGetSampleCount(mInstance));
 
                 mServer->OutputFormat("occupancies:\r\n");
-                for (uint8_t channel = otLinkGetPhyChannelMin(mInstance); channel <= otLinkGetPhyChannelMax(mInstance);
-                     channel++)
+                for (uint8_t channel = 0; channel < channelNum; channel++)
                 {
-                    uint32_t occupancy = otChannelMonitorGetChannelOccupancy(mInstance, channel);
+                    uint32_t occupancy = 0;
+
+                    if (!((1UL << channel) & channelMask))
+                    {
+                        continue;
+                    }
+
+                    occupancy = otChannelMonitorGetChannelOccupancy(mInstance, channel);
 
                     mServer->OutputFormat("ch %d (0x%04x) ", channel, occupancy);
                     occupancy = (occupancy * 10000) / 0xffff;
@@ -770,6 +781,44 @@ void Interpreter::ProcessChild(int argc, char *argv[])
     mServer->OutputFormat("RSSI: %d\r\n", childInfo.mAverageRssi);
 
 exit:
+    AppendResult(error);
+}
+
+void Interpreter::ProcessChildIp(int argc, char *argv[])
+{
+    otError error = OT_ERROR_NONE;
+    uint8_t maxChildren;
+
+    VerifyOrExit(argc == 0, error = OT_ERROR_INVALID_ARGS);
+
+    maxChildren = otThreadGetMaxAllowedChildren(mInstance);
+
+    for (uint8_t childIndex = 0; childIndex < maxChildren; childIndex++)
+    {
+        otChildIp6AddressIterator iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
+        otIp6Address              ip6Address;
+        otChildInfo               childInfo;
+
+        if ((otThreadGetChildInfoByIndex(mInstance, childIndex, &childInfo) != OT_ERROR_NONE) ||
+            childInfo.mIsStateRestoring)
+        {
+            continue;
+        }
+
+        iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
+
+        while (otThreadGetChildNextIp6Address(mInstance, childIndex, &iterator, &ip6Address) == OT_ERROR_NONE)
+        {
+            mServer->OutputFormat("%04x: %x:%x:%x:%x:%x:%x:%x:%x\r\n", childInfo.mRloc16,
+                                  HostSwap16(ip6Address.mFields.m16[0]), HostSwap16(ip6Address.mFields.m16[1]),
+                                  HostSwap16(ip6Address.mFields.m16[2]), HostSwap16(ip6Address.mFields.m16[3]),
+                                  HostSwap16(ip6Address.mFields.m16[4]), HostSwap16(ip6Address.mFields.m16[5]),
+                                  HostSwap16(ip6Address.mFields.m16[6]), HostSwap16(ip6Address.mFields.m16[7]));
+        }
+    }
+
+exit:
+    OT_UNUSED_VARIABLE(argv);
     AppendResult(error);
 }
 
@@ -1505,21 +1554,21 @@ void Interpreter::ProcessPSKc(int argc, char *argv[])
 
     if (argc == 0)
     {
-        const uint8_t *currentPSKc = otThreadGetPSKc(mInstance);
+        const otPSKc *pskc = otThreadGetPSKc(mInstance);
 
         for (int i = 0; i < OT_PSKC_MAX_SIZE; i++)
         {
-            mServer->OutputFormat("%02x", currentPSKc[i]);
+            mServer->OutputFormat("%02x", pskc->m8[i]);
         }
 
         mServer->OutputFormat("\r\n");
     }
     else
     {
-        uint8_t newPSKc[OT_PSKC_MAX_SIZE];
+        otPSKc pskc;
 
-        VerifyOrExit(Hex2Bin(argv[0], newPSKc, sizeof(newPSKc)) == OT_PSKC_MAX_SIZE, error = OT_ERROR_PARSE);
-        SuccessOrExit(error = otThreadSetPSKc(mInstance, newPSKc));
+        VerifyOrExit(Hex2Bin(argv[0], pskc.m8, sizeof(pskc)) == OT_PSKC_MAX_SIZE, error = OT_ERROR_PARSE);
+        SuccessOrExit(error = otThreadSetPSKc(mInstance, &pskc));
     }
 
 exit:
@@ -1962,7 +2011,7 @@ void Interpreter::HandleIcmpReceive(Message &               aMessage,
 
     if (aMessage.Read(aMessage.GetOffset(), sizeof(uint32_t), &timestamp) >= static_cast<int>(sizeof(uint32_t)))
     {
-        mServer->OutputFormat(" time=%dms", TimerMilli::GetNow() - HostSwap32(timestamp));
+        mServer->OutputFormat(" time=%dms", TimerMilli::Elapsed(HostSwap32(timestamp)));
     }
 
     mServer->OutputFormat("\r\n");
@@ -4037,3 +4086,20 @@ exit:
 
 } // namespace Cli
 } // namespace ot
+
+#if OPENTHREAD_ENABLE_LEGACY
+extern "C" void otNcpRegisterLegacyHandlers(const otNcpLegacyHandlers *aHandlers)
+{
+    OT_UNUSED_VARIABLE(aHandlers);
+}
+
+extern "C" void otNcpHandleDidReceiveNewLegacyUlaPrefix(const uint8_t *aUlaPrefix)
+{
+    OT_UNUSED_VARIABLE(aUlaPrefix);
+}
+
+extern "C" void otNcpHandleLegacyNodeDidJoin(const otExtAddress *aExtAddr)
+{
+    OT_UNUSED_VARIABLE(aExtAddr);
+}
+#endif // OPENTHREAD_ENABLE_LEGACY

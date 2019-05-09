@@ -42,7 +42,10 @@
 #include "common/logging.hpp"
 #include "utils/code_utils.h"
 
+#include "utils/soft_source_match_table.h"
+
 #include "board_config.h"
+#include "em_cmu.h"
 #include "em_core.h"
 #include "em_system.h"
 #include "openthread-core-efr32-config.h"
@@ -51,6 +54,7 @@
 #include "rail.h"
 #include "rail_config.h"
 #include "rail_ieee802154.h"
+#include "rtcdriver.h"
 
 enum
 {
@@ -100,7 +104,8 @@ typedef enum
     ENERGY_SCAN_MODE_ASYNC
 } energyScanMode;
 
-static uint16_t      sPanId             = 0;
+RAIL_Handle_t gRailHandle;
+
 static volatile bool sTransmitBusy      = false;
 static bool          sPromiscuous       = false;
 static bool          sIsSrcMatchEnabled = false;
@@ -113,15 +118,6 @@ static otError      sReceiveError;
 static otRadioFrame     sTransmitFrame;
 static uint8_t          sTransmitPsdu[IEEE802154_MAX_LENGTH];
 static volatile otError sTransmitError;
-
-typedef struct srcMatchEntry
-{
-    uint16_t checksum;
-    bool     allocated;
-} sSrcMatchEntry;
-
-static sSrcMatchEntry srcMatchShortEntry[RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM];
-static sSrcMatchEntry srcMatchExtEntry[RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM];
 
 static efr32BandConfig sBandConfigs[EFR32_NUM_BAND_CONFIGS];
 
@@ -185,6 +181,11 @@ static RAIL_Handle_t efr32RailConfigInit(efr32BandConfig *aBandConfig)
 
     handle = RAIL_Init(&aBandConfig->mRailConfig, NULL);
     assert(handle != NULL);
+
+    if (gRailHandle == NULL)
+    {
+        gRailHandle = handle;
+    }
 
     status = RAIL_ConfigData(handle, &railDataConfig);
     assert(status == RAIL_STATUS_NO_ERROR);
@@ -296,7 +297,14 @@ static void efr32BandConfigInit(void (*aEventCallback)(RAIL_Handle_t railHandle,
 
 void efr32RadioInit(void)
 {
+    RAIL_Status_t status;
+
     efr32BandConfigInit(RAILCb_Generic);
+
+    CMU_ClockEnable(cmuClock_PRS, true);
+    RTCDRV_Init();
+    status = RAIL_ConfigSleep(gRailHandle, RAIL_SLEEP_CONFIG_TIMERSYNC_ENABLED);
+    assert(status == RAIL_STATUS_NO_ERROR);
 
     sReceiveFrame.mLength  = 0;
     sReceiveFrame.mPsdu    = sReceivePsdu;
@@ -376,7 +384,7 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t aPanId)
 
     otLogInfoPlat("PANID=%X", aPanId);
 
-    sPanId = aPanId;
+    utilsSoftSrcMatchSetPanId(aPanId);
 
     for (uint8_t i = 0; i < EFR32_NUM_BAND_CONFIGS; i++)
     {
@@ -612,204 +620,12 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
     }
 }
 
-static int8_t findSrcMatchAvailEntry(bool aShortAddress)
-{
-    int8_t entry = -1;
-
-    if (aShortAddress)
-    {
-        for (uint8_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
-        {
-            if (!srcMatchShortEntry[i].allocated)
-            {
-                entry = i;
-                break;
-            }
-        }
-    }
-    else
-    {
-        for (uint8_t i = 0; i < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM; i++)
-        {
-            if (!srcMatchExtEntry[i].allocated)
-            {
-                entry = i;
-                break;
-            }
-        }
-    }
-
-    return entry;
-}
-
-static int8_t findSrcMatchShortEntry(const uint16_t aShortAddress)
-{
-    int8_t   entry    = -1;
-    uint16_t checksum = aShortAddress + sPanId;
-
-    for (uint8_t i = 0; i < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM; i++)
-    {
-        if (checksum == srcMatchShortEntry[i].checksum && srcMatchShortEntry[i].allocated)
-        {
-            entry = i;
-            break;
-        }
-    }
-
-    return entry;
-}
-
-static int8_t findSrcMatchExtEntry(const otExtAddress *aExtAddress)
-{
-    int8_t   entry    = -1;
-    uint16_t checksum = sPanId;
-
-    checksum += (uint16_t)aExtAddress->m8[0] | (uint16_t)(aExtAddress->m8[1] << 8);
-    checksum += (uint16_t)aExtAddress->m8[2] | (uint16_t)(aExtAddress->m8[3] << 8);
-    checksum += (uint16_t)aExtAddress->m8[4] | (uint16_t)(aExtAddress->m8[5] << 8);
-    checksum += (uint16_t)aExtAddress->m8[6] | (uint16_t)(aExtAddress->m8[7] << 8);
-
-    for (uint8_t i = 0; i < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM; i++)
-    {
-        if (checksum == srcMatchExtEntry[i].checksum && srcMatchExtEntry[i].allocated)
-        {
-            entry = i;
-            break;
-        }
-    }
-
-    return entry;
-}
-
-static void addToSrcMatchShortIndirect(uint8_t entry, const uint16_t aShortAddress)
-{
-    uint16_t checksum = aShortAddress + sPanId;
-
-    srcMatchShortEntry[entry].checksum  = checksum;
-    srcMatchShortEntry[entry].allocated = true;
-}
-
-static void addToSrcMatchExtIndirect(uint8_t entry, const otExtAddress *aExtAddress)
-{
-    uint16_t checksum = sPanId;
-
-    checksum += (uint16_t)aExtAddress->m8[0] | (uint16_t)(aExtAddress->m8[1] << 8);
-    checksum += (uint16_t)aExtAddress->m8[2] | (uint16_t)(aExtAddress->m8[3] << 8);
-    checksum += (uint16_t)aExtAddress->m8[4] | (uint16_t)(aExtAddress->m8[5] << 8);
-    checksum += (uint16_t)aExtAddress->m8[6] | (uint16_t)(aExtAddress->m8[7] << 8);
-
-    srcMatchExtEntry[entry].checksum  = checksum;
-    srcMatchExtEntry[entry].allocated = true;
-}
-
-static void removeFromSrcMatchShortIndirect(uint8_t entry)
-{
-    srcMatchShortEntry[entry].allocated = false;
-    srcMatchShortEntry[entry].checksum  = 0;
-}
-
-static void removeFromSrcMatchExtIndirect(uint8_t entry)
-{
-    srcMatchExtEntry[entry].allocated = false;
-    srcMatchExtEntry[entry].checksum  = 0;
-}
-
 void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
     // set Frame Pending bit for all outgoing ACKs if aEnable is false
     sIsSrcMatchEnabled = aEnable;
-}
-
-otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-
-    otError error = OT_ERROR_NONE;
-    int8_t  entry = -1;
-
-    entry = findSrcMatchAvailEntry(true);
-    otLogDebgPlat("Add ShortAddr entry: %d", entry);
-
-    otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM, error = OT_ERROR_NO_BUFS);
-
-    addToSrcMatchShortIndirect(entry, aShortAddress);
-
-exit:
-    return error;
-}
-
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-
-    otError error = OT_ERROR_NONE;
-    int8_t  entry = -1;
-
-    entry = findSrcMatchAvailEntry(false);
-    otLogDebgPlat("Add ExtAddr entry: %d", entry);
-
-    otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM, error = OT_ERROR_NO_BUFS);
-
-    addToSrcMatchExtIndirect(entry, aExtAddress);
-
-exit:
-    return error;
-}
-
-otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-
-    otError error = OT_ERROR_NONE;
-    int8_t  entry = -1;
-
-    entry = findSrcMatchShortEntry(aShortAddress);
-    otLogDebgPlat("Clear ShortAddr entry: %d", entry);
-
-    otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM, error = OT_ERROR_NO_ADDRESS);
-
-    removeFromSrcMatchShortIndirect(entry);
-
-exit:
-    return error;
-}
-
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-
-    otError error = OT_ERROR_NONE;
-    int8_t  entry = -1;
-
-    entry = findSrcMatchExtEntry(aExtAddress);
-    otLogDebgPlat("Clear ExtAddr entry: %d", entry);
-
-    otEXPECT_ACTION(entry >= 0 && entry < RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM, error = OT_ERROR_NO_ADDRESS);
-
-    removeFromSrcMatchExtIndirect(entry);
-
-exit:
-    return error;
-}
-
-void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-
-    otLogDebgPlat("Clear ShortAddr entries", NULL);
-
-    memset(srcMatchShortEntry, 0, sizeof(srcMatchShortEntry));
-}
-
-void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-
-    otLogDebgPlat("Clear ExtAddr entries", NULL);
-
-    memset(srcMatchExtEntry, 0, sizeof(srcMatchExtEntry));
 }
 
 static void processNextRxPacket(otInstance *aInstance, RAIL_Handle_t aRailHandle)
@@ -880,6 +696,10 @@ static void processNextRxPacket(otInstance *aInstance, RAIL_Handle_t aRailHandle
 
         sReceiveError = OT_ERROR_NONE;
 
+        // TODO Set this flag only when the packet is really acknowledged with frame pending set.
+        // See https://github.com/openthread/openthread/pull/3785
+        sReceiveFrame.mInfo.mRxInfo.mAckedWithFramePending = true;
+
 #if OPENTHREAD_ENABLE_DIAG
 
         if (otPlatDiagModeGet())
@@ -919,9 +739,9 @@ static void ieee802154DataRequestCommand(RAIL_Handle_t aRailHandle)
         assert(status == RAIL_STATUS_NO_ERROR);
 
         if ((sourceAddress.length == RAIL_IEEE802154_LongAddress &&
-             findSrcMatchExtEntry((otExtAddress *)sourceAddress.longAddress) >= 0) ||
+             utilsSoftSrcMatchExtFindEntry((otExtAddress *)sourceAddress.longAddress) >= 0) ||
             (sourceAddress.length == RAIL_IEEE802154_ShortAddress &&
-             findSrcMatchShortEntry(sourceAddress.shortAddress) >= 0))
+             utilsSoftSrcMatchShortFindEntry(sourceAddress.shortAddress) >= 0))
         {
             status = RAIL_IEEE802154_SetFramePending(aRailHandle);
             assert(status == RAIL_STATUS_NO_ERROR);

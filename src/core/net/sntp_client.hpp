@@ -463,13 +463,13 @@ public:
      *
      * @param[in]  aMessage  A reference to the message.
      *
-     * @returns The number of bytes read.
-     *
      */
-    uint16_t ReadFrom(const Message &aMessage)
+    void ReadFrom(const Message &aMessage)
     {
-        return aMessage.Read(aMessage.GetLength() - sizeof(*this), sizeof(*this), this);
-    };
+        uint16_t length = aMessage.Read(aMessage.GetLength() - sizeof(*this), sizeof(*this), this);
+        assert(length == sizeof(*this));
+        OT_UNUSED_VARIABLE(length);
+    }
 
     /**
      * This method updates request data in the message.
@@ -528,10 +528,7 @@ public:
      * @param[in]  aNetif    A reference to the network interface that SNTP client should be assigned to.
      *
      */
-    explicit Client(Ip6::Netif &aNetif)
-        : mSocket(aNetif.GetIp6().GetUdp())
-        , mRetransmissionTimer(aNetif.GetInstance(), &Client::HandleRetransmissionTimer, this)
-        , mUnixEra(0){};
+    explicit Client(Ip6::Netif &aNetif);
 
     /**
      * This method starts the SNTP client.

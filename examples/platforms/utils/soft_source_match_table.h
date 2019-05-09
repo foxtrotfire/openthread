@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017, The OpenThread Authors.
+ *  Copyright (c) 2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,38 +28,45 @@
 
 /**
  * @file
- *   This file includes definitions for owner locator.
+ * @brief
+ *   This file defines the software source match table interfaces used by
+ *   soft_source_match_table.c.
  */
 
-#ifndef OWNER_LOCATOR_HPP_
-#define OWNER_LOCATOR_HPP_
+#ifndef SOFT_SOURCE_MATCH_TABLE_H
+#define SOFT_SOURCE_MATCH_TABLE_H
 
 #include "openthread-core-config.h"
+#include <openthread/platform/radio.h>
 
-#include "common/instance.hpp"
-#include "common/locator.hpp"
+#include <stdint.h>
 
-namespace ot {
-
-#if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-
-template <typename OwnerType> OwnerType &OwnerLocator::GetOwner(void)
-{
-    // This method uses the `Instance` template method `Get<Type>`
-    // to get to the given `Type` from the single OpenThread
-    // instance.
-    //
-    // The specializations of `Instance::Get<Type>` should be defined
-    // for any class (type) which would use `GetOwner<Type>` method
-    // (i.e., any class that is an owner of a callback providing object
-    // such as a `Timer`, `Tasklet`, or in general any sub-class of
-    // `OwnerLocator`).
-
-    return Instance::Get().Get<OwnerType>();
-}
-
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-} // namespace ot
+#ifndef RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
+#define RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM 0
+#endif
 
-#endif // OWNER_LOCATOR_HPP_
+#ifndef RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+#define RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM 0
+#endif
+
+#if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+void utilsSoftSrcMatchSetPanId(uint16_t aPanId);
+#endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+
+#if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
+int8_t utilsSoftSrcMatchShortFindEntry(const uint16_t aShortAddress);
+#endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
+
+#if RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+int8_t utilsSoftSrcMatchExtFindEntry(const otExtAddress *aExtAddress);
+#endif // RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // SOFT_SOURCE_MATCH_TABLE_H

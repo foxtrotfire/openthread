@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017, The OpenThread Authors.
+ *  Copyright (c) 2017-2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,50 @@
 
 /**
  * @file
- *   This file implements the locator class for OpenThread objects.
+ *   This file includes definitions locator getter methods.
+ *
  */
 
-#define WPP_NAME "locator.tmh"
+#ifndef LOCATOR_GETTERS_HPP_
+#define LOCATOR_GETTERS_HPP_
 
-#include "locator.hpp"
+#include "openthread-core-config.h"
 
 #include "common/instance.hpp"
-#include "net/ip6.hpp"
+#include "common/locator.hpp"
 
 namespace ot {
 
-#if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-Instance &InstanceLocator::GetInstance(void) const
+/**
+ * This method returns a reference to the parent OpenThread Instance.
+ *
+ * This definition is a specialization of template `Get<Type>` for `Get<Instance>()`,
+ *
+ * @returns A reference to `Instance` object.
+ *
+ */
+template <> inline Instance &InstanceLocator::Get(void) const
 {
-    return Instance::Get();
+    return GetInstance();
 }
+
+template <typename Type> inline Type &InstanceLocator::Get(void) const
+{
+    // This method uses the `Instance` template method `Get<Type>`
+    // to get to the given `Type` from the single OpenThread
+    // instance.
+    return GetInstance().Get<Type>();
+}
+
+#if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+
+template <typename OwnerType> OwnerType &OwnerLocator::GetOwner(void)
+{
+    return Instance::Get().Get<OwnerType>();
+}
+
 #endif
 
-#if OPENTHREAD_MTD || OPENTHREAD_FTD
-Ip6::Ip6 &InstanceLocator::GetIp6(void) const
-{
-    return GetInstance().GetIp6();
-}
-
-ThreadNetif &InstanceLocator::GetNetif(void) const
-{
-    return GetInstance().GetThreadNetif();
-}
-
-Notifier &InstanceLocator::GetNotifier(void) const
-{
-    return GetInstance().GetNotifier();
-}
-#endif // OPENTHREAD_MTD || OPENTHREAD_FTD
-
 } // namespace ot
+
+#endif // LOCATOR_GETTERS_HPP_

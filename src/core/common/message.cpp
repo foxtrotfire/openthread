@@ -38,6 +38,7 @@
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/instance.hpp"
+#include "common/locator-getters.hpp"
 #include "common/logging.hpp"
 #include "net/ip6.hpp"
 
@@ -178,8 +179,7 @@ otError MessagePool::ReclaimBuffers(int aNumBuffers, uint8_t aPriority)
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
     while (aNumBuffers > GetFreeBufferCount())
     {
-        MeshForwarder &meshForwarder = GetInstance().GetThreadNetif().GetMeshForwarder();
-        SuccessOrExit(meshForwarder.EvictMessage(aPriority));
+        SuccessOrExit(Get<MeshForwarder>().EvictMessage(aPriority));
     }
 
 exit:
@@ -456,6 +456,11 @@ otError Message::Append(const void *aBuf, uint16_t aLength)
 
 exit:
     return error;
+}
+
+otError Message::AppendTlv(const Tlv &aTlv)
+{
+    return Append(&aTlv, aTlv.GetSize());
 }
 
 otError Message::Prepend(const void *aBuf, uint16_t aLength)

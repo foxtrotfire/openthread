@@ -398,26 +398,26 @@ public:
      *
      * @param[in]  aMessage  A reference to the message.
      *
-     * @returns The number of bytes read.
-     *
      */
-    uint16_t ReadFrom(Message &aMessage)
+    void ReadFrom(const Message &aMessage)
     {
-        return aMessage.Read(aMessage.GetLength() - sizeof(*this), sizeof(*this), this);
-    };
+        uint16_t length = aMessage.Read(aMessage.GetLength() - sizeof(*this), sizeof(*this), this);
+        assert(length == sizeof(*this));
+        OT_UNUSED_VARIABLE(length);
+    }
 
     /**
      * This method removes delayed response header from the message.
      *
      * @param[in]  aMessage  A reference to the message.
      *
-     * @retval OT_ERROR_NONE  Successfully removed the header.
-     *
      */
-    static otError RemoveFrom(Message &aMessage)
+    static void RemoveFrom(Message &aMessage)
     {
-        return aMessage.SetLength(aMessage.GetLength() - sizeof(DelayedResponseHeader));
-    };
+        otError error = aMessage.SetLength(aMessage.GetLength() - sizeof(DelayedResponseHeader));
+        assert(error == OT_ERROR_NONE);
+        OT_UNUSED_VARIABLE(error);
+    }
 
     /**
      * This method returns a time when the message shall be sent.
@@ -545,7 +545,7 @@ public:
      * @param[in]  aScanChannels          A bit vector indicating which channels to scan.
      * @param[in]  aPanId                 The PAN ID filter (set to Broadcast PAN to disable filter).
      * @param[in]  aJoiner                Value of the Joiner Flag in the Discovery Request TLV.
-     * @param[in]  aEnableEui64Filtering  Enable filtering out MLE discovery responses that don't match our factory
+     * @param[in]  aEnableFiltering       Enable filtering out MLE discovery responses that don't match our factory
      *                                    assigned EUI64.
      * @param[in]  aHandler               A pointer to a function that is called on receiving an MLE Discovery Response.
      * @param[in]  aContext               A pointer to arbitrary context information.
@@ -557,7 +557,7 @@ public:
     otError Discover(const Mac::ChannelMask &aScanChannels,
                      uint16_t                aPanId,
                      bool                    aJoiner,
-                     bool                    aEnableEui64Filtering,
+                     bool                    aEnableFiltering,
                      DiscoverHandler         aCallback,
                      void *                  aContext);
 
@@ -567,7 +567,7 @@ public:
      * @returns true if an MLE Thread Discovery is in progress, false otherwise.
      *
      */
-    bool IsDiscoverInProgress(void) const { return mIsDiscoverInProgress; }
+    bool IsDiscoverInProgress(void) const { return mDiscoverInProgress; }
 
     /**
      * This method is called by the MeshForwarder to indicate that discovery is complete.
@@ -1767,8 +1767,10 @@ private:
 
     DiscoverHandler mDiscoverHandler;
     void *          mDiscoverContext;
-    bool            mIsDiscoverInProgress;
-    bool            mEnableEui64Filtering;
+    uint16_t        mDiscoverCcittIndex;
+    uint16_t        mDiscoverAnsiIndex;
+    bool            mDiscoverInProgress;
+    bool            mDiscoverEnableFiltering;
 
 #if OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH
     uint16_t mPreviousParentRloc;
@@ -1790,7 +1792,7 @@ private:
     Ip6::NetifUnicastAddress mLeaderAloc;
 
 #if OPENTHREAD_ENABLE_SERVICE
-    Ip6::NetifUnicastAddress mServiceAlocs[OPENTHREAD_CONFIG_MAX_SERVER_ALOCS];
+    Ip6::NetifUnicastAddress mServiceAlocs[OPENTHREAD_CONFIG_MAX_SERVICE_ALOCS];
 #endif
 
     otMleCounters mCounters;

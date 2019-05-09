@@ -228,6 +228,9 @@ NcpBase::NcpBase(Instance *aInstance)
     , mPcapEnabled(false)
     , mDisableStreamWrite(false)
     , mShouldEmitChildTableUpdate(false)
+#if OPENTHREAD_ENABLE_SERVICE
+    , mAllowLocalServerDataChange(false)
+#endif
 #if OPENTHREAD_FTD
     , mPreferredRouteId(0)
 #endif
@@ -288,7 +291,7 @@ NcpBase::NcpBase(Instance *aInstance)
     mUpdateChangedPropsTask.Post();
 
 #if OPENTHREAD_ENABLE_VENDOR_EXTENSION
-    aInstance->GetExtension().SignalNcpInit(*this);
+    aInstance->Get<Extension::ExtensionBase>().SignalNcpInit(*this);
 #endif
 }
 
@@ -1741,7 +1744,7 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_MAC_RAW));
 #endif
 
-#if OPENTHREAD_ENABLE_POSIX_APP
+#if OPENTHREAD_PLATFORM_POSIX_APP
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_POSIX_APP));
 #endif
 
@@ -1818,6 +1821,10 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
 
 #if OPENTHREAD_ENABLE_UDP_FORWARD
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_UDP_FORWARD));
+#endif
+
+#if OPENTHREAD_ENABLE_SERVICE
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_SERVICE));
 #endif
 
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
@@ -2164,6 +2171,20 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(
 
 exit:
     return error;
+}
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_CHAN_SUPPORTED>(void)
+{
+#if OPENTHREAD_RADIO
+    return EncodeChannelMask(otPlatRadioGetSupportedChannelMask(mInstance));
+#else
+    return EncodeChannelMask(otLinkGetSupportedChannelMask(mInstance));
+#endif // OPENTHREAD_RADIO
+}
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_CHAN_PREFERRED>(void)
+{
+    return EncodeChannelMask(otPlatRadioGetPreferredChannelMask(mInstance));
 }
 
 } // namespace Ncp

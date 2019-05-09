@@ -35,8 +35,8 @@
 
 #include "common/code_utils.hpp"
 #include "common/instance.hpp"
+#include "common/locator-getters.hpp"
 #include "common/message.hpp"
-#include "common/owner-locator.hpp"
 #include "common/random.hpp"
 #include "net/ip6.hpp"
 
@@ -244,8 +244,7 @@ void Mpl::AddBufferedMessage(Message &aMessage, uint16_t aSeedId, uint8_t aSeque
 
 #if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_MPL_INTERVAL
     // adjust the first MPL forward interval dynamically according to the network scale
-    uint8_t interval = (kDataMessageInterval / Mle::kMaxRouters) *
-                       GetInstance().GetThreadNetif().GetMle().GetRouterTable().GetNeighborCount();
+    uint8_t interval = (kDataMessageInterval / Mle::kMaxRouters) * Get<RouterTable>().GetNeighborCount();
 #else
     uint8_t interval = kDataMessageInterval;
 #endif
@@ -301,7 +300,7 @@ otError Mpl::ProcessOption(Message &aMessage, const Address &aAddress, bool aIsO
     VerifyOrExit(aMessage.Read(aMessage.GetOffset(), sizeof(option), &option) >= OptionMpl::kMinLength &&
                      (option.GetSeedIdLength() == OptionMpl::kSeedIdLength0 ||
                       option.GetSeedIdLength() == OptionMpl::kSeedIdLength2),
-                 error = OT_ERROR_DROP);
+                 error = OT_ERROR_PARSE);
 
     if (option.GetSeedIdLength() == OptionMpl::kSeedIdLength0)
     {
@@ -335,7 +334,7 @@ void Mpl::HandleRetransmissionTimer(Timer &aTimer)
 void Mpl::HandleRetransmissionTimer(void)
 {
     uint32_t                   now       = TimerMilli::GetNow();
-    uint32_t                   nextDelta = 0xffffffff;
+    uint32_t                   nextDelta = TimerMilli::kForeverDt;
     MplBufferedMessageMetadata messageMetadata;
 
     Message *message     = mBufferedMessageSet.GetHead();
@@ -348,10 +347,12 @@ void Mpl::HandleRetransmissionTimer(void)
 
         if (messageMetadata.IsLater(now))
         {
+            uint32_t diff = TimerMilli::Elapsed(now, messageMetadata.GetTransmissionTime());
+
             // Calculate the next retransmission time and choose the lowest.
-            if (messageMetadata.GetTransmissionTime() - now < nextDelta)
+            if (diff < nextDelta)
             {
-                nextDelta = messageMetadata.GetTransmissionTime() - now;
+                nextDelta = diff;
             }
         }
         else
@@ -361,6 +362,8 @@ void Mpl::HandleRetransmissionTimer(void)
 
             if (messageMetadata.GetTransmissionCount() < GetTimerExpirations())
             {
+                uint32_t diff;
+
                 Message *messageCopy = message->Clone(message->GetLength() - sizeof(MplBufferedMessageMetadata));
 
                 if (messageCopy != NULL)
@@ -370,16 +373,18 @@ void Mpl::HandleRetransmissionTimer(void)
                         messageCopy->SetSubType(Message::kSubTypeMplRetransmission);
                     }
 
-                    GetIp6().EnqueueDatagram(*messageCopy);
+                    Get<Ip6>().EnqueueDatagram(*messageCopy);
                 }
 
                 messageMetadata.GenerateNextTransmissionTime(now, kDataMessageInterval);
                 messageMetadata.UpdateIn(*message);
 
+                diff = TimerMilli::Elapsed(now, messageMetadata.GetTransmissionTime());
+
                 // Check if retransmission time is lower than the current lowest one.
-                if (messageMetadata.GetTransmissionTime() - now < nextDelta)
+                if (diff < nextDelta)
                 {
-                    nextDelta = messageMetadata.GetTransmissionTime() - now;
+                    nextDelta = diff;
                 }
             }
             else
@@ -394,8 +399,8 @@ void Mpl::HandleRetransmissionTimer(void)
                     }
 
                     // Remove the extra metadata from the MPL Data Message.
-                    messageMetadata.RemoveFrom(*message);
-                    GetIp6().EnqueueDatagram(*message);
+                    MplBufferedMessageMetadata::RemoveFrom(*message);
+                    Get<Ip6>().EnqueueDatagram(*message);
                 }
                 else
                 {
@@ -408,7 +413,7 @@ void Mpl::HandleRetransmissionTimer(void)
         message = nextMessage;
     }
 
-    if (nextDelta != 0xffffffff)
+    if (nextDelta != TimerMilli::kForeverDt)
     {
         mRetransmissionTimer.Start(nextDelta);
     }

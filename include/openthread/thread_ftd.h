@@ -462,10 +462,10 @@ OTAPI otError OTCALL otThreadGetChildInfoByIndex(otInstance *aInstance, uint8_t 
  * @sa otThreadGetChildInfoByIndex
  *
  */
-otError otThreadGetChildNextIp6Address(otInstance *               aInstance,
-                                       uint8_t                    aChildIndex,
-                                       otChildIp6AddressIterator *aIterator,
-                                       otIp6Address *             aAddress);
+OTAPI otError OTCALL otThreadGetChildNextIp6Address(otInstance *               aInstance,
+                                                    uint8_t                    aChildIndex,
+                                                    otChildIp6AddressIterator *aIterator,
+                                                    otIp6Address *             aAddress);
 
 /**
  * Get the current Router ID Sequence.
@@ -524,7 +524,7 @@ OTAPI otError OTCALL otThreadGetEidCacheEntry(otInstance *aInstance, uint8_t aIn
  * @sa otThreadSetPSKc
  *
  */
-OTAPI const uint8_t *OTCALL otThreadGetPSKc(otInstance *aInstance);
+OTAPI const otPSKc *OTCALL otThreadGetPSKc(otInstance *aInstance);
 
 /**
  * Set the thrPSKc.
@@ -542,7 +542,7 @@ OTAPI const uint8_t *OTCALL otThreadGetPSKc(otInstance *aInstance);
  * @sa otThreadGetPSKc
  *
  */
-OTAPI otError OTCALL otThreadSetPSKc(otInstance *aInstance, const uint8_t *aPSKc);
+OTAPI otError OTCALL otThreadSetPSKc(otInstance *aInstance, const otPSKc *aPSKc);
 
 /**
  * Get the assigned parent priority.

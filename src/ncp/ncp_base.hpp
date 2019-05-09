@@ -409,6 +409,7 @@ protected:
 #endif // OPENTHREAD_FTD
 
 #if OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API
+    otError DecodeStreamRawTxRequest(otRadioFrame &aFrame);
     otError HandlePropertySet_SPINEL_PROP_STREAM_RAW(uint8_t aHeader);
 #endif
 
@@ -543,6 +544,9 @@ protected:
     bool mPcapEnabled;
     bool mDisableStreamWrite;
     bool mShouldEmitChildTableUpdate;
+#if OPENTHREAD_ENABLE_SERVICE
+    bool mAllowLocalServerDataChange;
+#endif
 
 #if OPENTHREAD_FTD
 #if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB

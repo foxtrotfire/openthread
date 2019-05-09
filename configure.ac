@@ -1946,6 +1946,7 @@ CPPFLAGS="${CPPFLAGS} ${MBEDTLS_CPPFLAGS}"
 
 CPPFLAGS="${CPPFLAGS} ${NL_COVERAGE_CPPFLAGS}"
 LIBS="${LIBS} ${NL_COVERAGE_LIBS}"
+LDFLAGS="${LDFLAGS} ${NL_COVERAGE_LDFLAGS}"
 
 # At this point, we can restore the compiler flags to whatever the
 # user passed in, now that we're clear of an -Werror issues by
@@ -1983,6 +1984,9 @@ examples/platforms/cc2650/Makefile
 examples/platforms/cc2652/Makefile
 examples/platforms/da15000/Makefile
 examples/platforms/efr32/Makefile
+examples/platforms/efr32/sleepy-demo/Makefile
+examples/platforms/efr32/sleepy-demo/efr32-sleepy-demo-ftd/Makefile
+examples/platforms/efr32/sleepy-demo/efr32-sleepy-demo-mtd/Makefile
 examples/platforms/emsk/Makefile
 examples/platforms/gp712/Makefile
 examples/platforms/kw41z/Makefile

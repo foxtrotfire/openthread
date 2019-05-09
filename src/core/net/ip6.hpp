@@ -100,6 +100,8 @@ using ot::Encoding::BigEndian::HostSwap32;
  */
 class Ip6 : public InstanceLocator
 {
+    friend class ot::Instance;
+
 public:
     enum
     {
@@ -181,11 +183,17 @@ public:
     /**
      * This method sends a raw IPv6 datagram with a fully formed IPv6 header.
      *
+     * The caller transfers ownership of @p aMessage when making this call. OpenThread will free @p aMessage when
+     * processing is complete, including when a value other than `OT_ERROR_NONE` is returned.
+     *
      * @param[in]  aMessage          A reference to the message.
      * @param[in]  aInterfaceId      The interface identifier of the network interface that received the message.
      *
-     * @retval OT_ERROR_NONE   Successfully processed the message.
-     * @retval OT_ERROR_DROP   Message processing failed and the message should be dropped.
+     * @retval OT_ERROR_NONE      Successfully processed the message.
+     * @retval OT_ERROR_DROP      Message was well-formed but not fully processed due to packet processing rules.
+     * @retval OT_ERROR_NO_BUFS   Could not allocate necessary message buffers when processing the datagram.
+     * @retval OT_ERROR_NO_ROUTE  No route to host.
+     * @retval OT_ERROR_PARSE     Encountered a malformed header when processing the message.
      *
      */
     otError SendRaw(Message &aMessage, int8_t aInterfaceId);
@@ -199,8 +207,11 @@ public:
      * @param[in]  aLinkMessageInfo  A pointer to link-specific message information.
      * @param[in]  aFromNcpHost      TRUE if the message was submitted by the NCP host, FALSE otherwise.
      *
-     * @retval OT_ERROR_NONE   Successfully processed the message.
-     * @retval OT_ERROR_DROP   Message processing failed and the message should be dropped.
+     * @retval OT_ERROR_NONE      Successfully processed the message.
+     * @retval OT_ERROR_DROP      Message was well-formed but not fully processed due to packet processing rules.
+     * @retval OT_ERROR_NO_BUFS   Could not allocate necessary message buffers when processing the datagram.
+     * @retval OT_ERROR_NO_ROUTE  No route to host.
+     * @retval OT_ERROR_PARSE     Encountered a malformed header when processing the message.
      *
      */
     otError HandleDatagram(Message &   aMessage,
@@ -377,38 +388,6 @@ public:
      *
      */
     const PriorityQueue &GetSendQueue(void) const { return mSendQueue; }
-
-    /**
-     * This method returns a reference to the IPv6 route management instance.
-     *
-     * @returns A reference to the route management instance.
-     *
-     */
-    Routes &GetRoutes(void) { return mRoutes; }
-
-    /**
-     * This method returns a reference to the ICMP6 controller instance.
-     *
-     * @returns A reference to the ICMP6 instance.
-     *
-     */
-    Icmp &GetIcmp(void) { return mIcmp; }
-
-    /**
-     * This method returns a reference to the UDP controller instance.
-     *
-     * @returns A reference to the UDP instance.
-     *
-     */
-    Udp &GetUdp(void) { return mUdp; }
-
-    /**
-     * This method returns a reference to the MPL message processing controller instance.
-     *
-     * @returns A reference to the Mpl instance.
-     *
-     */
-    Mpl &GetMpl(void) { return mMpl; }
 
     /**
      * This static method converts an `IpProto` enumeration to a string.

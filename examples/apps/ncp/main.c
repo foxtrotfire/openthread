@@ -33,8 +33,53 @@
 #include <openthread/diag.h>
 #include <openthread/ncp.h>
 #include <openthread/tasklet.h>
+#include <openthread/platform/logging.h>
 
 #include "openthread-system.h"
+
+/**
+ * Altered
+ */
+#include <openthread/instance.h>
+#include <openthread/thread.h>
+#include <openthread/thread_ftd.h>
+#include <openthread/coap.h>
+#include <openthread/message.h>
+#include "stdlib.h"
+#include "string.h"
+#include "em_gpio.h"
+
+// static char nat64_prefix[] = "2018:db8:1:ffff::";
+// static char coap_server_ip[] = "ac11:1"; //ipv4: 172.17.0.1
+// static int CID = 0; //identifies this specific device
+
+/**@brief Enumeration describing light commands.
+ */
+typedef enum
+{
+    LIGHT_OFF = '0',
+    LIGHT_ON,
+    LIGHT_TOGGLE
+} coap_light_command_t;
+
+/**@brief Type definition of the function used to handle light resource change.
+ */
+typedef void (*light_changed_handler_t)(coap_light_command_t light_state);
+
+/**@brief Structure holding CoAP resources.
+ */
+typedef struct
+{
+    otCoapResource light_resource;        /**< CoAP light resource. */
+} coap_resources_t;
+
+
+void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext);
+
+
+/**
+ * /Altered
+ */
 
 #if OPENTHREAD_EXAMPLES_POSIX
 #include <setjmp.h>
@@ -61,6 +106,214 @@ void otTaskletsSignalPending(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
 }
+
+/**
+ * Altered
+ */
+static void handleButtonInterrupt(otInstance *aInstance);
+
+
+void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext)
+{
+   if ((aFlags & OT_CHANGED_THREAD_ROLE) != 0)
+   {
+       otDeviceRole changedRole = otThreadGetDeviceRole(aContext);
+
+       switch (changedRole)
+       {
+       case OT_DEVICE_ROLE_LEADER:
+           otSysLedSet(0, true);
+           otSysLedSet(1, true);
+           otSysLedSet(2, true);
+           break;
+
+       case OT_DEVICE_ROLE_ROUTER:
+           otSysLedSet(0, true);
+           otSysLedSet(1, false);
+           otSysLedSet(2, true);
+           break;
+       
+       case OT_DEVICE_ROLE_CHILD:
+           otSysLedSet(0, true);
+           otSysLedSet(1, true);
+           otSysLedSet(2, false);
+           break;
+       
+       case OT_DEVICE_ROLE_DETACHED:
+           otSysLedSet(0, true);
+           otSysLedSet(1, false);
+           otSysLedSet(2, false);
+           break;
+
+       case OT_DEVICE_ROLE_DISABLED:
+           otSysLedSet(0, false);
+           otSysLedSet(1, false);
+           otSysLedSet(2, false);
+           break;
+        }
+    }
+}
+
+/**
+ * WARNING: DO NOT PUT CLI OUTPUT CALLS IN THIS METHOD OTHER THAN ERRORS
+ *              IT WILL CAUSE CRASHES
+ */
+void coap_light_mesh_local_multicast_request_send(otInstance * p_instance)
+{
+    otError error = OT_ERROR_NONE;
+    otMessage * p_message;
+    otMessageInfo message_info;
+    otIp6Address coapDestinationIp;
+    //parameters
+    char coapUri[32] = "light";
+    char coapPayload[1] = "2";
+    otCoapType coapType = OT_COAP_TYPE_NON_CONFIRMABLE;
+    otCoapCode coapCode = OT_COAP_CODE_PUT;
+    char destinationAddress[] = "ff03::1";
+    
+    do{
+        
+        p_message = otCoapNewMessage(p_instance, NULL);
+        if (p_message == NULL)
+        {
+            break;
+        }
+        otCoapMessageInit(p_message, coapType, coapCode);
+        otCoapMessageGenerateToken(p_message, 2);
+        error = otCoapMessageAppendUriPathOptions(p_message, coapUri);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        otCoapMessageSetPayloadMarker(p_message);
+        error = otMessageAppend(p_message, coapPayload, sizeof(coapPayload));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        memset(&message_info, 0, sizeof(message_info));
+        error = otIp6AddressFromString(destinationAddress, &coapDestinationIp);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        message_info.mPeerAddr = coapDestinationIp;
+        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        message_info.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
+
+        error = otCoapSendRequest(p_instance, p_message, &message_info, NULL, NULL);
+    } while(false);
+
+    if (error != OT_ERROR_NONE && p_message != NULL)
+    {
+        otMessageFree(p_message);
+    }
+}
+
+void handleButtonInterrupt(otInstance *aInstance)
+{
+    GPIO_IntClear(1<<7U);
+    GPIO_IntDisable(1<<7U);
+    coap_light_mesh_local_multicast_request_send(aInstance);
+    GPIO_IntEnable(1<<7U);
+}
+
+static void light_changed_default(coap_light_command_t light_command)
+{
+    switch (light_command)
+    {
+        case LIGHT_ON:
+            otSysLedSet(3, true);
+            break;
+
+        case LIGHT_OFF:
+            otSysLedSet(3, false);
+            break;
+
+        case LIGHT_TOGGLE:
+            otSysLedToggle(3);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static light_changed_handler_t m_light_changed = light_changed_default;
+
+
+void coap_light_response_send(void                * p_context,
+                                           otMessage * p_request_message,
+                                           const otMessageInfo * p_message_info)
+{
+    otError      error = OT_ERROR_NO_BUFS;
+    otMessage  * p_response;
+    do
+    {
+        
+        p_response = otCoapNewMessage(p_context, NULL);
+        otCoapMessageInit(p_response, OT_COAP_TYPE_ACKNOWLEDGMENT, OT_COAP_CODE_CHANGED);
+        otCoapMessageSetMessageId(p_response, otCoapMessageGetMessageId(p_request_message));
+        otCoapMessageSetToken(p_response,
+                             otCoapMessageGetToken(p_request_message),
+                             otCoapMessageGetTokenLength(p_request_message));
+
+        if (p_response == NULL)
+        {
+            break;
+        }
+
+        error = otCoapSendResponse(p_context, p_response, p_message_info);
+
+
+    } while (false);
+
+    if ((error != OT_ERROR_NONE) && (p_response != NULL))
+    {
+        otMessageFree(p_response);
+    }
+}
+
+static void coap_light_request_handler(void                * p_context,
+                                                    otMessage           * p_message,
+                                                    const otMessageInfo * p_message_info)
+{
+    uint8_t command;
+    do
+    {
+
+        if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
+            otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
+        {
+            break;
+        }
+
+        if (otCoapMessageGetCode(p_message) != OT_COAP_CODE_PUT)
+        {
+            break;
+        }
+
+        if (otMessageRead(p_message, otMessageGetOffset(p_message), &command, 1) != 1)
+        {
+        }
+
+        m_light_changed((coap_light_command_t)command);
+
+        if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
+        {
+            coap_light_response_send(p_context, p_message, p_message_info);
+        }
+
+    } while (false);
+}
+
+
+static coap_resources_t m_coap_resources = {
+    .light_resource        = {"light", coap_light_request_handler, NULL, NULL},
+};
+/**
+ * /Altered
+ */
 
 int main(int argc, char *argv[])
 {
@@ -102,7 +355,22 @@ pseudo_reset:
     assert(instance);
 
     otNcpInit(instance);
-
+/**
+ * Altered
+ */
+    /* Register Thread state change handler */
+    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
+    /* init GPIO LEDs */
+    otSysLedInit();
+    /* init GPIO BTN0 */
+    otSysButtonInit(handleButtonInterrupt);
+    /* Init CoAP */
+    otCoapStart(instance, OT_DEFAULT_COAP_PORT);
+    m_coap_resources.light_resource.mContext = instance;
+    otCoapAddResource(instance, &m_coap_resources.light_resource);
+/**
+ * /Altered
+ */
 #if OPENTHREAD_ENABLE_DIAG
     otDiagInit(instance);
 #endif
@@ -111,6 +379,13 @@ pseudo_reset:
     {
         otTaskletsProcess(instance);
         otSysProcessDrivers(instance);
+/**
+ * Altered
+ */
+        otSysButtonProcess(instance);
+/**
+ * /Altered
+ */ 
     }
 
     otInstanceFinalize(instance);

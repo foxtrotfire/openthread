@@ -51,8 +51,8 @@ enum
     kDmaBlockSize    = 64
 };
 
-#define USART_PORT USART0
-#define USART_PORT_RX_IRQn USART0_RX_IRQn
+#define USART_PORT USART2
+#define USART_PORT_RX_IRQn USART2_RX_IRQn
 
 #define USART_INIT                                                                               \
     {                                                                                            \

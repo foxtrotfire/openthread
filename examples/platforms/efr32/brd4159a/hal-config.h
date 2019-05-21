@@ -186,13 +186,13 @@ emuDcdcLnCompCtrl_4u7F, /* 4.7uF DCDC capacitor */ \
 #define BSP_SERIAL_APP_RTS_PORT               (gpioPortA)
 #define BSP_SERIAL_APP_RTS_LOC                (16U)
 
-#define BSP_SERIAL_APP_RX_PIN                 (10U)
-#define BSP_SERIAL_APP_RX_PORT                (gpioPortC)
-#define BSP_SERIAL_APP_RX_LOC                 (14U)
+#define BSP_SERIAL_APP_RX_PIN                 (4U)
+#define BSP_SERIAL_APP_RX_PORT                (gpioPortF)
+#define BSP_SERIAL_APP_RX_LOC                 (16U)
 
-#define BSP_SERIAL_APP_TX_PIN                 (11U)
-#define BSP_SERIAL_APP_TX_PORT                (gpioPortC)
-#define BSP_SERIAL_APP_TX_LOC                 (16U)
+#define BSP_SERIAL_APP_TX_PIN                 (5U)
+#define BSP_SERIAL_APP_TX_PORT                (gpioPortF)
+#define BSP_SERIAL_APP_TX_LOC                 (18U)
 
 #define HAL_SERIAL_APP_RX_QUEUE_SIZE          (128UL)
 #define HAL_SERIAL_APP_BAUD_RATE              (115200UL)
@@ -218,70 +218,122 @@ emuDcdcLnCompCtrl_4u7F, /* 4.7uF DCDC capacitor */ \
 // [UARTNCP]$
 
 // $[USART0]
-#define PORTIO_USART0_CTS_PIN                 (11U)
-#define PORTIO_USART0_CTS_PORT                (gpioPortD)
-#define PORTIO_USART0_CTS_LOC                 (15U)
+#define PORTIO_USART0_CLK_PIN           (10U)
+#define PORTIO_USART0_CLK_PORT          (gpioPortC)
+#define PORTIO_USART0_CLK_LOC           (13U)
 
-#define PORTIO_USART0_RTS_PIN                 (13U)
-#define PORTIO_USART0_RTS_PORT                (gpioPortD)
-#define PORTIO_USART0_RTS_LOC                 (16U)
+#define PORTIO_USART0_CS_PIN            (7U)
+#define PORTIO_USART0_CS_PORT           (gpioPortC)
+#define PORTIO_USART0_CS_LOC            (9U)
 
-#define PORTIO_USART0_RX_PIN                  (10U)
-#define PORTIO_USART0_RX_PORT                 (gpioPortC)
-#define PORTIO_USART0_RX_LOC                  (14U)
+#define PORTIO_USART0_RX_PIN            (9U)
+#define PORTIO_USART0_RX_PORT           (gpioPortC)
+#define PORTIO_USART0_RX_LOC            (13U)
 
-#define PORTIO_USART0_TX_PIN                  (11U)
-#define PORTIO_USART0_TX_PORT                 (gpioPortC)
-#define PORTIO_USART0_TX_LOC                  (16U)
+#define PORTIO_USART0_TX_PIN            (8U)
+#define PORTIO_USART0_TX_PORT           (gpioPortC)
+#define PORTIO_USART0_TX_LOC            (13U)
 
-#define HAL_USART0_ENABLE                     (1)
+#define HAL_USART0_ENABLE               (1)
 
-#define BSP_USART0_CTS_PIN                 (11U)
-#define BSP_USART0_CTS_PORT                (gpioPortD)
-#define BSP_USART0_CTS_LOC                 (15U)
+#define BSP_USART0_CS_PIN               (7U)
+#define BSP_USART0_CS_PORT              (gpioPortC)
+#define BSP_USART0_CS_LOC               (9U)
 
-#define BSP_USART0_RTS_PIN                 (13U)
-#define BSP_USART0_RTS_PORT                (gpioPortD)
-#define BSP_USART0_RTS_LOC                 (16U)
+#define BSP_USART0_CLK_PIN              (10U)
+#define BSP_USART0_CLK_PORT             (gpioPortC)
+#define BSP_USART0_CLK_LOC              (13U)
 
-#define BSP_USART0_RX_PIN                     (10U)
-#define BSP_USART0_RX_PORT                    (gpioPortC)
-#define BSP_USART0_RX_LOC                     (14U)
+#define BSP_USART0_MISO_PIN             (9U)
+#define BSP_USART0_MISO_PORT            (gpioPortC)
+#define BSP_USART0_MISO_LOC             (13U)
 
-#define BSP_USART0_TX_PIN                     (11U)
-#define BSP_USART0_TX_PORT                    (gpioPortC)
-#define BSP_USART0_TX_LOC                     (16U)
+#define BSP_USART0_MOSI_PIN             (8U)
+#define BSP_USART0_MOSI_PORT            (gpioPortC)
+#define BSP_USART0_MOSI_LOC             (13U)
 
-#define HAL_USART0_RX_QUEUE_SIZE              (128UL)
-#define HAL_USART0_BAUD_RATE                  (115200UL)
-#define HAL_USART0_RXSTOP                     (16UL)
-#define HAL_USART0_RXSTART                    (16UL)
-#define HAL_USART0_TX_QUEUE_SIZE              (128UL)
-#define HAL_USART0_FLOW_CONTROL               (HAL_USART_FLOW_CONTROL_NONE)
+#define HAL_USART0_FREQUENCY            (1000000UL)
 // [USART0]$
 
 // $[USART1]
-#define PORTIO_USART1_CLK_PIN               (3U)
-#define PORTIO_USART1_CLK_PORT              (gpioPortA)    
-#define PORTIO_USART1_CLK_LOC               (1U)
+#define PORTIO_USART1_CLK_PIN           (3U)
+#define PORTIO_USART1_CLK_PORT          (gpioPortA)
+#define PORTIO_USART1_CLK_LOC           (1U)
 
-#define PORTIO_USART1_CS_PIN                (11U)
-#define PORTIO_USART1_CS_PORT               (gpioPortB)
-#define PORTIO_USART1_CS_LOC                (3U)
+#define PORTIO_USART1_CS_PIN            (11U)
+#define PORTIO_USART1_CS_PORT           (gpioPortB)
+#define PORTIO_USART1_CS_LOC            (3U)
 
-#define PORTIO_USART1_RX_PIN                (4U)
-#define PORTIO_USART1_RX_PORT               (gpioPortA)
-#define PORTIO_USART1_RX_LOC                (3U)
+#define PORTIO_USART1_RX_PIN            (4U)
+#define PORTIO_USART1_RX_PORT           (gpioPortA)
+#define PORTIO_USART1_RX_LOC            (3U)
 
-#define PORTIO_USART1_TX_PIN                (2U)
-#define PORTIO_USART1_TX_PORT               (gpioPortA)
-#define PORTIO_USART1_TX_LOC                (2U)
+#define PORTIO_USART1_TX_PIN            (2U)
+#define PORTIO_USART1_TX_PORT           (gpioPortA)
+#define PORTIO_USART1_TX_LOC            (2U)
 
-#define HAL_USART1_FREQUENCY                (1000000UL)
+#define HAL_USART1_ENABLE               (1)
+
+#define BSP_USART1_CS_PIN               (11U)
+#define BSP_USART1_CS_PORT              (gpioPortB)
+#define BSP_USART1_CS_LOC               (3U)
+
+#define BSP_USART1_CLK_PIN              (3U)
+#define BSP_USART1_CLK_PORT             (gpioPortA)
+#define BSP_USART1_CLK_LOC              (1U)
+
+#define BSP_USART1_MISO_PIN             (4U)
+#define BSP_USART1_MISO_PORT            (gpioPortA)
+#define BSP_USART1_MISO_LOC             (3U)
+
+#define BSP_USART1_MOSI_PIN             (2U)
+#define BSP_USART1_MOSI_PORT            (gpioPortA)
+#define BSP_USART1_MOSI_LOC             (2U)
+
+#define HAL_USART1_FREQUENCY            (1000000UL)
 // [USART1]$
 
 // $[USART2]
+#define PORTIO_USART2_CTS_PIN                 (11U)
+#define PORTIO_USART2_CTS_PORT                (gpioPortA)
+#define PORTIO_USART2_CTS_LOC                 (15U)
 
+#define PORTIO_USART2_RTS_PIN                 (13U)
+#define PORTIO_USART2_RTS_PORT                (gpioPortA)
+#define PORTIO_USART2_RTS_LOC                 (16U)
+
+#define PORTIO_USART2_RX_PIN                  (4U)
+#define PORTIO_USART2_RX_PORT                 (gpioPortF)
+#define PORTIO_USART2_RX_LOC                  (16U)
+
+#define PORTIO_USART2_TX_PIN                  (5U)
+#define PORTIO_USART2_TX_PORT                 (gpioPortF)
+#define PORTIO_USART2_TX_LOC                  (18U)
+
+#define HAL_USART2_ENABLE                     (1)
+
+#define BSP_USART2_CTS_PIN                    (11U)
+#define BSP_USART2_CTS_PORT                   (gpioPortA)
+#define BSP_USART2_CTS_LOC                    (15U)
+
+#define BSP_USART2_RTS_PIN                    (13U)
+#define BSP_USART2_RTS_PORT                   (gpioPortA)
+#define BSP_USART2_RTS_LOC                    (16U)
+
+#define BSP_USART2_RX_PIN                     (4U)
+#define BSP_USART2_RX_PORT                    (gpioPortF)
+#define BSP_USART2_RX_LOC                     (16U)
+
+#define BSP_USART2_TX_PIN                     (5U)
+#define BSP_USART2_TX_PORT                    (gpioPortF)
+#define BSP_USART2_TX_LOC                     (18U)
+
+#define HAL_USART2_RX_QUEUE_SIZE              (128UL)
+#define HAL_USART2_BAUD_RATE                  (115200UL)
+#define HAL_USART2_RXSTOP                     (16UL)
+#define HAL_USART2_RXSTART                    (16UL)
+#define HAL_USART2_TX_QUEUE_SIZE              (128UL)
+#define HAL_USART2_FLOW_CONTROL               (HAL_USART_FLOW_CONTROL_NONE)
 // [USART2]$
 
 // $[USART3]

@@ -76,6 +76,7 @@ libopenthread_efr32_a_CPPFLAGS                                                = 
     -I$(EFR32MG_SDK_SRCDIR)/platform/Device/SiliconLabs/EFR32MG13P/Include      \
     -I$(EFR32MG_SDK_SRCDIR)/platform/emdrv/common/inc                           \
     -I$(EFR32MG_SDK_SRCDIR)/platform/emdrv/gpiointerrupt/inc                    \
+    -I$(EFR32MG_SDK_SRCDIR)/platform/emdrv/spidrv/inc                           \
     -I$(EFR32MG_SDK_SRCDIR)/platform/emdrv/uartdrv/inc                          \
     -I$(EFR32MG_SDK_SRCDIR)/platform/emdrv/uartdrv/config                       \
     -I$(EFR32MG_SDK_SRCDIR)/platform/emdrv/ustimer/inc                          \
@@ -90,16 +91,23 @@ libopenthread_efr32_a_CPPFLAGS                                                = 
     $(NULL)
 
 PLATFORM_SOURCES                                                              = \
+    $(EFR32_BOARD_DIR)/hal-config.h                                             \
     alarm.c                                                                     \
+    AT86RF212.c                                                                 \
+    AT86RF212_spi.c                                                             \
     diag.c                                                                      \
     fem-control.c                                                               \
     flash.c                                                                     \
     gpio.c                                                                      \
     logging.c                                                                   \
+    ethernet.c                                                                  \
+    ksz8851snl.c                                                                \
+    ksz8851snl_spi.c                                                            \
     misc.c                                                                      \
     radio.c                                                                     \
     random.c                                                                    \
     startup-gcc.c                                                               \
+    subg_radio.c                                                                \
     system.c                                                                    \
     uart.c                                                                      \
     $(NULL)
@@ -116,6 +124,7 @@ nodist_libopenthread_efr32_a_SOURCES                                            
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emdrv/dmadrv/src/dmadrv.c                                     \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emdrv/gpiointerrupt/src/gpiointerrupt.c                       \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emdrv/rtcdrv/src/rtcdriver.c                                  \
+    @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emdrv/spidrv/src/spidrv.c                                     \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emdrv/uartdrv/src/uartdrv.c                                   \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emdrv/ustimer/src/ustimer.c                                   \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/platform/emlib/src/em_adc.c                                            \
@@ -159,16 +168,5 @@ libopenthread_efr32_a_LIBADD                                                    
     $(shell find $(top_builddir)/examples/platforms/utils $(Dash)type f $(Dash)name "*.o")             \
     $(shell find $(top_builddir)/third_party/jlink/SEGGER_RTT_V640/RTT $(Dash)type f $(Dash)name "*.o")
 
-DIST_SUBDIRS                                                                  = \
-    sleepy-demo                                                                 \
-    $(NULL)
-    
-SUBDIRS                                                                       = \
-    sleepy-demo                                                                 \
-    $(NULL)
-
-PRETTY_SUBDIRS                                                                = \
-    sleepy-demo                                                                 \
-    $(NULL)
     
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am

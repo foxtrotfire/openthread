@@ -49,6 +49,10 @@ LIBTOOLFLAGS_COMMON                                                   += \
 
 SOURCES_COMMON                                                        += \
     main.c                                                               \
+    userCoap.c                                                           \
+    userCoap.h                                                           \
+    userCommands.c                                                       \
+    userCommands.h                                                       \
     $(NULL)
 
 if OPENTHREAD_ENABLE_BUILTIN_MBEDTLS

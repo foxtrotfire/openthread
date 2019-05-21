@@ -41,11 +41,17 @@
 extern "C" {
 #endif
 
+
+void otSysEthernetInit(void);
+void otSysEthernetDirectWrite(int numBytes, const uint8_t * data);
+
+void otSysSubgRadioInit(void);
+void otSysSubgRadioDirectWrite(int numBytes, const uint8_t * data);
+
 /**
  * Init LED module
  * 
  */
-
 void otSysLedInit(void);
 void otSysLedSet(uint8_t aLed, bool aOn);
 void otSysLedToggle(uint8_t aLed);
@@ -57,10 +63,6 @@ void otSysLedToggle(uint8_t aLed);
 typedef void (*otSysButtonCallback)(otInstance *aInstance);
 void otSysButtonInit(otSysButtonCallback aCallback);
 void otSysButtonProcess(otInstance *aInstance);
-
-typedef void (*otSysTimer0Callback)(otInstance *aInstance);
-void otSysTimer0Init(otSysTimer0Callback aCallback);
-void otSystimer0Process(otInstance *aInstance);
 
 
 /**

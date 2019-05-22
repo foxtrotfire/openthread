@@ -55,6 +55,25 @@ void coap_get_inuse_response_handler(void *               aContext,
 
 void coap_get_inuse_request_send(otInstance *p_instance, char *coapPayload, char *destinationAddress);
 
+void coap_get_charging_response_handler(void *               aContext,
+                                     otMessage *          aMessage,
+                                     const otMessageInfo *aMessageInfo,
+                                     otError              aError);
+
+void coap_get_charging_request_send(otInstance *p_instance, char *coapPayload, char *destinationAddress);
+void coap_put_charging_response_handler(void *               aContext,
+                                     otMessage *          aMessage,
+                                     const otMessageInfo *aMessageInfo,
+                                     otError              aError);
+
+void coap_put_charging_request_send(otInstance *p_instance, char *coapPayload, char *destinationAddress);
+void coap_get_chargecurrent_response_handler(void *               aContext,
+                                     otMessage *          aMessage,
+                                     const otMessageInfo *aMessageInfo,
+                                     otError              aError);
+
+void coap_get_chargecurrent_request_send(otInstance *p_instance, char *coapPayload, char *destinationAddress);
+
 void coap_light_mesh_local_multicast_request_send(otInstance *p_instance);
 
 void light_changed_default(coap_light_command_t light_command);

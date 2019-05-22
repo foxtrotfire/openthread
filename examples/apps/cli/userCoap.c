@@ -25,7 +25,6 @@ void coap_print_payload(otMessage *aMessage){
 
     if (length > 0)
     {
-        otCliOutputFormat("Payload: ");
         while (length > 0)
         {
             bytesToPrint = (length < sizeof(buf)) ? length : sizeof(buf);
@@ -65,15 +64,14 @@ void coap_put_login_response_handler(void *aContext, otMessage *aMessage, const 
 {
     OT_UNUSED_VARIABLE(aContext);
     OT_UNUSED_VARIABLE(aMessageInfo);
-    // uint8_t response_val[32];
 
     if (aError == OT_ERROR_NONE)
     {
-        otCliOutputFormat("CoAP PUT Response received\r\n");
-        // otMessageRead(aMessage, otMessageGetOffset(aMessage), response_val, otMessageGetLength(aMessage)-1);
-
-        coap_print_payload_raw(aMessage);
         coap_print_payload(aMessage);
+        char payload[2];
+        payload[0] = CID;
+        payload[1] = '0';
+        coap_get_inuse_request_send(aContext, payload, coap_server_address);
     }
     else
     {
@@ -93,7 +91,6 @@ void coap_put_login_request_send(otInstance * p_instance, char * coapPayload, ch
 
     do{
         
-        otCliOutputFormat("<info> CoAP sent %s request with payload %s to %s\r\n", coapUri, coapPayload, destinationAddress);
         p_message = otCoapNewMessage(p_instance, NULL);
         if (p_message == NULL)
         {
@@ -137,16 +134,14 @@ void coap_put_logout_response_handler(void *aContext, otMessage *aMessage, const
 {
     OT_UNUSED_VARIABLE(aContext);
     OT_UNUSED_VARIABLE(aMessageInfo);
-    // uint8_t reSsponse_val[32];
 
     if (aError == OT_ERROR_NONE)
     {
-        otCliOutputFormat("CoAP PUT Response received\r\n");
-        // otMessageRead(aMessage, otMessageGetOffset(aMessage), response_val, otMessageGetLength(aMessage)-1);
-
-        // otCliOutputFormat("CoAP response_value: %s\r\n", response_val);
-        coap_print_payload_raw(aMessage);
         coap_print_payload(aMessage);
+        char payload[2];
+        payload[0] = CID;
+        payload[1] = '0';
+        coap_get_inuse_request_send(aContext, payload, coap_server_address);
     }
     else
     {
@@ -166,7 +161,6 @@ void coap_put_logout_request_send(otInstance * p_instance, char * coapPayload, c
 
     do{
         
-        otCliOutputFormat("<info> CoAP sent %s request with payload %s to %s\r\n", coapUri, coapPayload, destinationAddress);
         p_message = otCoapNewMessage(p_instance, NULL);
         if (p_message == NULL)
         {
@@ -216,7 +210,7 @@ void coap_get_inuse_response_handler(void *aContext, otMessage *aMessage, const 
     {
         otMessageRead(aMessage, otMessageGetOffset(aMessage), response_val, 1);
 
-        otCliOutputFormat("CoAP response_value: %c\r\n", response_val[0]);
+        coap_print_payload(aMessage);
         if(response_val[0] == '0')
         {
             otSysLedSet(3, false);
@@ -243,8 +237,6 @@ void coap_get_inuse_request_send(otInstance * p_instance, char * coapPayload, ch
     char coapUri[32] = "inuse";
 
     do{
-        
-        otCliOutputFormat("<info> CoAP sent %s request with payload %s to %s\r\n", coapUri, coapPayload, destinationAddress);
         p_message = otCoapNewMessage(p_instance, NULL);
         if (p_message == NULL)
         {
@@ -284,9 +276,217 @@ void coap_get_inuse_request_send(otInstance * p_instance, char * coapPayload, ch
     }
 }
 
+void coap_get_charging_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo, otError aError)
+{
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    OT_UNUSED_VARIABLE(aContext);
+    uint8_t response_val[256];
+    if (aError == OT_ERROR_NONE)
+    {
+        otMessageRead(aMessage, otMessageGetOffset(aMessage), response_val, 1);
 
+        coap_print_payload(aMessage);
+        if(response_val[0] == '0')
+        {
+            otSysLedSet(0, false);
+        }
+        else
+        {
+            otSysLedSet(0, true);
+        }
+    }
+    else
+    {
+        otCliOutputFormat("<error> CoAP response handler: failed to receive response: %d\r\n", aError);
+    }
+}
 
+void coap_get_charging_request_send(otInstance * p_instance, char * coapPayload, char * destinationAddress)
+{
+    otError error = OT_ERROR_NONE;
+    otMessage * p_message;
+    otMessageInfo message_info;
+    otIp6Address coapDestinationIp;
+    otCoapType coapType = OT_COAP_TYPE_CONFIRMABLE;
+    otCoapCode coapCode = OT_COAP_CODE_GET;
+    char coapUri[32] = "charging";
 
+    do{
+        
+        p_message = otCoapNewMessage(p_instance, NULL);
+        if (p_message == NULL)
+        {
+            otCliOutputFormat("<error> CoAP Request: failed to allocate message\r\n");
+            break;
+        }
+        otCoapMessageInit(p_message, coapType, coapCode);
+        otCoapMessageGenerateToken(p_message, 2);
+        error = otCoapMessageAppendUriPathOptions(p_message, coapUri);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        otCoapMessageSetPayloadMarker(p_message);
+        error = otMessageAppend(p_message, coapPayload, sizeof(coapPayload));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        memset(&message_info, 0, sizeof(message_info));
+        error = otIp6AddressFromString(destinationAddress, &coapDestinationIp);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        message_info.mPeerAddr = coapDestinationIp;
+        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        message_info.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
+
+        error = otCoapSendRequest(p_instance, p_message, &message_info, coap_get_charging_response_handler, p_instance);
+    } while(false);
+
+    if (error != OT_ERROR_NONE && p_message != NULL)
+    {
+        otCliOutputFormat("<error> CoAP Request: failed to send request: %d\r\n", error);
+        otMessageFree(p_message);
+    }
+}
+
+void coap_put_charging_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo, otError aError)
+{
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    OT_UNUSED_VARIABLE(aContext);
+
+    if (aError == OT_ERROR_NONE)
+    {
+        coap_print_payload(aMessage);
+        char payload[2];
+        payload[0] = CID;
+        payload[1] = '0';
+        coap_get_charging_request_send(aContext, payload, coap_server_address);
+    }
+    else
+    {
+        otCliOutputFormat("<error> CoAP response handler: failed to receive response: %d\r\n", aError);
+    }
+}
+
+void coap_put_charging_request_send(otInstance * p_instance, char * coapPayload, char * destinationAddress)
+{
+    otError error = OT_ERROR_NONE;
+    otMessage * p_message;
+    otMessageInfo message_info;
+    otIp6Address coapDestinationIp;
+    otCoapType coapType = OT_COAP_TYPE_CONFIRMABLE;
+    otCoapCode coapCode = OT_COAP_CODE_PUT;
+    char coapUri[32] = "charging";
+
+    do{
+        
+        p_message = otCoapNewMessage(p_instance, NULL);
+        if (p_message == NULL)
+        {
+            otCliOutputFormat("<error> CoAP Request: failed to allocate message\r\n");
+            break;
+        }
+        otCoapMessageInit(p_message, coapType, coapCode);
+        otCoapMessageGenerateToken(p_message, 2);
+        error = otCoapMessageAppendUriPathOptions(p_message, coapUri);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        otCoapMessageSetPayloadMarker(p_message);
+        error = otMessageAppend(p_message, coapPayload, sizeof(coapPayload));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        memset(&message_info, 0, sizeof(message_info));
+        error = otIp6AddressFromString(destinationAddress, &coapDestinationIp);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        message_info.mPeerAddr = coapDestinationIp;
+        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        message_info.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
+
+        error = otCoapSendRequest(p_instance, p_message, &message_info, coap_put_charging_response_handler, p_instance);
+    } while(false);
+
+    if (error != OT_ERROR_NONE && p_message != NULL)
+    {
+        otCliOutputFormat("<error> CoAP Request: failed to send request: %d\r\n", error);
+        otMessageFree(p_message);
+    }
+}
+
+void coap_get_chargecurrent_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo, otError aError)
+{
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    OT_UNUSED_VARIABLE(aContext);
+
+    if (aError == OT_ERROR_NONE)
+    {
+        coap_print_payload(aMessage);
+    }
+    else
+    {
+        otCliOutputFormat("<error> CoAP response handler: failed to receive response: %d\r\n", aError);
+    }
+}
+
+void coap_get_chargecurrent_request_send(otInstance * p_instance, char * coapPayload, char * destinationAddress)
+{
+    otError error = OT_ERROR_NONE;
+    otMessage * p_message;
+    otMessageInfo message_info;
+    otIp6Address coapDestinationIp;
+    otCoapType coapType = OT_COAP_TYPE_CONFIRMABLE;
+    otCoapCode coapCode = OT_COAP_CODE_GET;
+    char coapUri[32] = "chargecurrent";
+
+    do{
+        
+        p_message = otCoapNewMessage(p_instance, NULL);
+        if (p_message == NULL)
+        {
+            otCliOutputFormat("<error> CoAP Request: failed to allocate message\r\n");
+            break;
+        }
+        otCoapMessageInit(p_message, coapType, coapCode);
+        otCoapMessageGenerateToken(p_message, 2);
+        error = otCoapMessageAppendUriPathOptions(p_message, coapUri);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        otCoapMessageSetPayloadMarker(p_message);
+        error = otMessageAppend(p_message, coapPayload, sizeof(coapPayload));
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        memset(&message_info, 0, sizeof(message_info));
+        error = otIp6AddressFromString(destinationAddress, &coapDestinationIp);
+        if (error != OT_ERROR_NONE)
+        {
+            break;
+        }
+        message_info.mPeerAddr = coapDestinationIp;
+        message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
+        message_info.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
+
+        error = otCoapSendRequest(p_instance, p_message, &message_info, coap_get_chargecurrent_response_handler, p_instance);
+    } while(false);
+
+    if (error != OT_ERROR_NONE && p_message != NULL)
+    {
+        otCliOutputFormat("<error> CoAP Request: failed to send request: %d\r\n", error);
+        otMessageFree(p_message);
+    }
+}
 
 /**
  * WARNING: DO NOT PUT CLI OUTPUT CALLS IN THIS METHOD OTHER THAN ERRORS

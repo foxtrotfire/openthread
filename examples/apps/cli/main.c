@@ -187,10 +187,10 @@ pseudo_reset:
 /**
  * Altered
  */
-    otCliSetUserCommands(userCommands, 3);
+    otCliSetUserCommands(userCommands, 4);
     cli_userCommands_init(instance);
     /* Register Thread state change handler */
-    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
+//    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
     /* init GPIO LEDs */
     otSysLedInit();
     /* init GPIO BTN0 */

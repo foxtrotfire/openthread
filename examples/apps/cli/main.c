@@ -197,6 +197,7 @@ pseudo_reset:
     otSysButtonInit(handleButtonInterrupt);
     /* init Ethernet */
     otSysEthernetInit();
+    otSysLwipInit();
     /* init Subg Radio */
     otSysSubgRadioInit();
     /* Init CoAP */

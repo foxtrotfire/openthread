@@ -41,6 +41,7 @@
 extern "C" {
 #endif
 
+void otSysLwipInit(void);
 
 void otSysEthernetInit(void);
 void otSysEthernetDirectWrite(int numBytes, const uint8_t * data);

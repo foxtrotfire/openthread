@@ -5,7 +5,6 @@
  */
 #include "lwip/init.h" 
 
-
 void otSysLwipInit(void)
 {
     lwip_init();

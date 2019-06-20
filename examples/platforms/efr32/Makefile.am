@@ -86,17 +86,6 @@ libopenthread_efr32_a_CPPFLAGS                                                = 
     -I$(EFR32MG_SDK_SRCDIR)/platform/emlib/inc                                  \
     -I$(EFR32MG_SDK_SRCDIR)/platform/halconfig/inc/hal-config                   \
     -I$(EFR32MG_SDK_SRCDIR)/util/plugin/plugin-common/fem-control               \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/test/unit                \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip-contrib/ports/efm32/include \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/ipv4              \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/ipv4/lwip         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/api         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/core         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/core/ipv4         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/core/snmp         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/netif         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/netif/ppp         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include              \
     -Wno-unused-parameter                                                       \
     -Wno-missing-field-initializers                                             \
     $(NULL)
@@ -111,7 +100,6 @@ PLATFORM_SOURCES                                                              = 
     flash.c                                                                     \
     gpio.c                                                                      \
     logging.c                                                                   \
-    lwip.c                                                                      \
     ethernet.c                                                                  \
     ksz8851snl.c                                                                \
     ksz8851snl_spi.c                                                            \
@@ -159,8 +147,6 @@ nodist_libopenthread_efr32_a_SOURCES                                            
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/mbedtls/sl_crypto/src/crypto_aes.c                    \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/mbedtls/sl_crypto/src/crypto_ecp.c                    \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/mbedtls/sl_crypto/src/crypto_management.c             \
-    @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/init.c                             \
-    @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/ip_addr.c                    \
     $(NULL)
 
 noinst_HEADERS                                                                = \

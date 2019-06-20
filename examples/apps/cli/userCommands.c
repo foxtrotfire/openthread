@@ -84,9 +84,16 @@ void cli_charge(int argc, char *argv[]){
     }
 }
 
+void cli_coap_test(int argc, char *argv[]){
+    OT_UNUSED_VARIABLE(argc);
+    OT_UNUSED_VARIABLE(argv);
+    coap_test_mesh_local_multicast_request_send(thisInstance);
+}
+
 otCliCommand userCommands[] = { 
     { .mName = "login", .mCommand = &cli_login},
     { .mName = "logout", .mCommand = &cli_logout},
     { .mName = "charge", .mCommand = &cli_charge},
-    { .mName = "hello", .mCommand = &cli_hello_world}
+    { .mName = "hello", .mCommand = &cli_hello_world},
+    { .mName = "coaptest", .mCommand = &cli_coap_test}
 };

@@ -13,9 +13,8 @@
 #include "userCoap.h"
 
 char coap_server_address[] = "2018:db8:1:ffff::ac11:1";
-char CID                   = '0'; // identifies this specific device
+char CID                   = '3'; // identifies this specific device
 
-light_changed_handler_t m_light_changed = light_changed_default;
 
 void coap_print_payload(otMessage *aMessage){
     uint8_t buf[16];
@@ -70,7 +69,7 @@ void coap_put_login_response_handler(void *aContext, otMessage *aMessage, const 
         coap_print_payload(aMessage);
         char payload[2];
         payload[0] = CID;
-        payload[1] = '0';
+        payload[1] = '\0';
         coap_get_inuse_request_send(aContext, payload, coap_server_address);
     }
     else
@@ -140,7 +139,7 @@ void coap_put_logout_response_handler(void *aContext, otMessage *aMessage, const
         coap_print_payload(aMessage);
         char payload[2];
         payload[0] = CID;
-        payload[1] = '0';
+        payload[1] = '\0';
         coap_get_inuse_request_send(aContext, payload, coap_server_address);
     }
     else
@@ -362,7 +361,7 @@ void coap_put_charging_response_handler(void *aContext, otMessage *aMessage, con
         coap_print_payload(aMessage);
         char payload[2];
         payload[0] = CID;
-        payload[1] = '0';
+        payload[1] = '\0';
         coap_get_charging_request_send(aContext, payload, coap_server_address);
     }
     else
@@ -488,30 +487,39 @@ void coap_get_chargecurrent_request_send(otInstance * p_instance, char * coapPay
     }
 }
 
-/**
- * WARNING: DO NOT PUT CLI OUTPUT CALLS IN THIS METHOD OTHER THAN ERRORS
- *              IT WILL CAUSE CRASHES
- */
-void coap_light_mesh_local_multicast_request_send(otInstance * p_instance)
+
+void coap_test_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo, otError aError)
+{
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    OT_UNUSED_VARIABLE(aContext);
+    if (aError == OT_ERROR_NONE)
+    {
+        coap_print_payload(aMessage);
+    }
+    else
+    {
+        otCliOutputFormat("<error> CoAP response handler: failed to receive response: %d\r\n", aError);
+    }
+}
+
+void coap_test_mesh_local_multicast_request_send(otInstance * p_instance)
 {
     otError error = OT_ERROR_NONE;
     otMessage * p_message;
     otMessageInfo message_info;
     otIp6Address coapDestinationIp;
     //parameters
-    char coapUri[32] = "light";
+    char coapUri[32] = "test";
     char coapPayload[1] = "2";
-    otCoapType coapType = OT_COAP_TYPE_NON_CONFIRMABLE;
+    otCoapType coapType = OT_COAP_TYPE_CONFIRMABLE;
     otCoapCode coapCode = OT_COAP_CODE_PUT;
     char destinationAddress[] = "ff03::1";
     
     do{
-        
-        otCliOutputFormat("<info> CoAP sent %s request with payload %c to %s\r\n", coapUri, coapPayload[0], destinationAddress);
         p_message = otCoapNewMessage(p_instance, NULL);
         if (p_message == NULL)
         {
-            otCliOutputFormat("<error> Light MLM Request: failed to allocate message\r\n");
+            otCliOutputFormat("<error> test MLM Request: failed to allocate message\r\n");
             break;
         }
         otCoapMessageInit(p_message, coapType, coapCode);
@@ -537,63 +545,48 @@ void coap_light_mesh_local_multicast_request_send(otInstance * p_instance)
         message_info.mPeerPort = OT_DEFAULT_COAP_PORT;
         message_info.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
 
-        error = otCoapSendRequest(p_instance, p_message, &message_info, NULL, NULL);
+        error = otCoapSendRequest(p_instance, p_message, &message_info, coap_test_response_handler, p_instance);
     } while(false);
 
     if (error != OT_ERROR_NONE && p_message != NULL)
     {
-        otCliOutputFormat("<error> Light MLM request: failed to send request: %d\r\n", error);
+        otCliOutputFormat("<error> Test MLM request: failed to send request: %d\r\n", error);
         otMessageFree(p_message);
     }
 }
 
-void light_changed_default(coap_light_command_t light_command)
-{
-    otCliOutputFormat("<info> Light changed: %s\r\n", light_command);
-    switch (light_command)
-    {
-        case LIGHT_ON:
-            otSysLedSet(3, true);
-            break;
-
-        case LIGHT_OFF:
-            otSysLedSet(3, false);
-            break;
-
-        case LIGHT_TOGGLE:
-            otSysLedToggle(3);
-            break;
-
-        default:
-            otCliOutputFormat("<error> Light changed: unknown command\r\n");
-            break;
-    }
-}
 
 
-void coap_light_response_send(void                * p_context,
+void coap_test_response_send(void                * p_context,
                                            otMessage * p_request_message,
                                            const otMessageInfo * p_message_info)
 {
     otError      error = OT_ERROR_NO_BUFS;
+    otError result;
     otMessage  * p_response;
     do
     {
-        otCliOutputFormat("<info> Light response called\r\n");
         
         p_response = otCoapNewMessage(p_context, NULL);
-        otCoapMessageInit(p_response, OT_COAP_TYPE_ACKNOWLEDGMENT, OT_COAP_CODE_CHANGED);
-        otCoapMessageSetMessageId(p_response, otCoapMessageGetMessageId(p_request_message));
-        otCoapMessageSetToken(p_response,
-                             otCoapMessageGetToken(p_request_message),
-                             otCoapMessageGetTokenLength(p_request_message));
+            otCoapMessageInit(p_response, OT_COAP_TYPE_ACKNOWLEDGMENT, OT_COAP_CODE_CHANGED);
+            otCoapMessageSetMessageId(p_response, otCoapMessageGetMessageId(p_request_message));
+            otCoapMessageSetToken(p_response,
+                                otCoapMessageGetToken(p_request_message),
+                                otCoapMessageGetTokenLength(p_request_message));
 
-        if (p_response == NULL)
-        {
-            break;
-        }
+            otCoapMessageSetPayloadMarker(p_response);
+            result = otMessageAppend(p_response, "Test Received", 13);
+            if (result == OT_ERROR_NONE){
+                if (p_response == NULL)
+                {
+                    break;
+                }
 
-        error = otCoapSendResponse(p_context, p_response, p_message_info);
+                error = otCoapSendResponse(p_context, p_response, p_message_info);
+            }
+            else{
+                otCliOutputFormat("<error> Error appending response\r\n");
+            }
 
 
     } while (false);
@@ -604,15 +597,13 @@ void coap_light_response_send(void                * p_context,
     }
 }
 
-void coap_light_request_handler(void                * p_context,
+void coap_test_request_handler(void                * p_context,
                                                     otMessage           * p_message,
                                                     const otMessageInfo * p_message_info)
 {
-    uint8_t command;
     do
     {
 
-        otCliOutputFormat("<info> Light request received\r\n");
         if (otCoapMessageGetType(p_message) != OT_COAP_TYPE_CONFIRMABLE &&
             otCoapMessageGetType(p_message) != OT_COAP_TYPE_NON_CONFIRMABLE)
         {
@@ -624,23 +615,21 @@ void coap_light_request_handler(void                * p_context,
             break;
         }
 
-        if (otMessageRead(p_message, otMessageGetOffset(p_message), &command, 1) != 1)
-        {
-            otCliOutputFormat("<error> Light request: missing command\r\n");
-        }
-
-        m_light_changed((coap_light_command_t)command);
-
         if (otCoapMessageGetType(p_message) == OT_COAP_TYPE_CONFIRMABLE)
         {
-            coap_light_response_send(p_context, p_message, p_message_info);
+            coap_test_response_send(p_context, p_message, p_message_info);
         }
 
     } while (false);
 }
 
-
+void coap_default_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    OT_UNUSED_VARIABLE(aContext);
+    coap_print_payload(aMessage);
+}
 
 coap_resources_t m_coap_resources = {
-    .light_resource        = {"light", coap_light_request_handler, NULL, NULL},
+    .test_resource        = {"test", coap_test_request_handler, NULL, NULL},
 };

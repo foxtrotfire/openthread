@@ -10,26 +10,12 @@
 extern char coap_server_address[COAP_SERVER_ADDRESS_MAX_SIZE];
 extern char CID; // identifies this specific device
 
-/**@brief Enumeration describing light commands.
- */
-typedef enum
-{
-    LIGHT_OFF = '0',
-    LIGHT_ON,
-    LIGHT_TOGGLE
-} coap_light_command_t;
-
-/**@brief Type definition of the function used to handle light resource change.
- */
-typedef void (*light_changed_handler_t)(coap_light_command_t light_state);
-
-light_changed_handler_t m_light_changed;
 
 /**@brief Structure holding CoAP resources.
  */
 typedef struct
 {
-    otCoapResource light_resource; /**< CoAP light resource. */
+    otCoapResource test_resource; /**< CoAP test resource. */
 } coap_resources_t;
 
 void coap_print_payload(otMessage *aMessage);
@@ -74,12 +60,14 @@ void coap_get_chargecurrent_response_handler(void *               aContext,
 
 void coap_get_chargecurrent_request_send(otInstance *p_instance, char *coapPayload, char *destinationAddress);
 
-void coap_light_mesh_local_multicast_request_send(otInstance *p_instance);
+void coap_test_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo, otError aError);
 
-void light_changed_default(coap_light_command_t light_command);
+void coap_test_mesh_local_multicast_request_send(otInstance *p_instance);
 
-void coap_light_response_send(void *p_context, otMessage *p_request_message, const otMessageInfo *p_message_info);
+void coap_test_response_send(void *p_context, otMessage *p_request_message, const otMessageInfo *p_message_info);
 
-void coap_light_request_handler(void *p_context, otMessage *p_message, const otMessageInfo *p_message_info);
+void coap_test_request_handler(void *p_context, otMessage *p_message, const otMessageInfo *p_message_info);
+
+void coap_default_response_handler(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
 
 extern coap_resources_t m_coap_resources;

@@ -48,9 +48,15 @@
 #include "stdlib.h"
 #include "string.h"
 #include "em_gpio.h"
+#include "em_cmu.h"
 
 #include "userCoap.h"
 #include "userCommands.h"
+
+#define PORTIO_GPIO_AT86RST_PIN     (6U)
+#define PORTIO_GPIO_AT86RST_PORT    (gpioPortF)
+#define PORTIO_GPIO_AT86RST2_PIN     (7U)
+#define PORTIO_GPIO_AT86RST2_PORT    (gpioPortF)
 
 void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext);
 
@@ -88,7 +94,7 @@ void otTaskletsSignalPending(otInstance *aInstance)
  * Altered
  */
 
-static void handleButtonInterrupt(otInstance *aInstance);
+//static void handleButtonInterrupt(otInstance *aInstance);
 
 void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext)
 {
@@ -131,13 +137,13 @@ void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext)
     }
 }
 
-void handleButtonInterrupt(otInstance *aInstance)
-{
-    GPIO_IntClear(1<<7U);
-    GPIO_IntDisable(1<<7U);
-    coap_get_inuse_request_send(aInstance, "0", coap_server_address);
-    GPIO_IntEnable(1<<7U);
-}
+// void handleButtonInterrupt(otInstance *aInstance)
+// {
+//     GPIO_IntClear(1<<7U);
+//     GPIO_IntDisable(1<<7U);
+//     coap_get_inuse_request_send(aInstance, "0", coap_server_address);
+//     GPIO_IntEnable(1<<7U);
+// }
 
 
 /**
@@ -147,6 +153,9 @@ void handleButtonInterrupt(otInstance *aInstance)
 int main(int argc, char *argv[])
 {
     otInstance *instance;
+#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+    otInstance *instance2;
+#endif
 
 #if OPENTHREAD_EXAMPLES_POSIX
     if (setjmp(gResetJump))
@@ -178,32 +187,43 @@ pseudo_reset:
 
     // Initialize OpenThread with the buffer
     instance = otInstanceInit(otInstanceBuffer, &otInstanceBufferLength);
+    instance2 = otInstanceInit(otInstanceBuffer, &otInstanceBufferLength);
 #else
     instance = otInstanceInitSingle();
 #endif
     assert(instance);
+#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+    assert(instance2);
+#endif
 
-    otCliUartInit(instance);
+    CMU_ClockEnable(cmuClock_GPIO, true);
+    GPIO_PinModeSet(PORTIO_GPIO_AT86RST_PORT, PORTIO_GPIO_AT86RST_PIN, gpioModePushPull, 0);
+    GPIO_PinModeSet(PORTIO_GPIO_AT86RST2_PORT, PORTIO_GPIO_AT86RST2_PIN, gpioModePushPull, 0);
+
+   otCliUartInit(instance);
+#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+    otCliUartInit(instance2);
+#endif
 /**
  * Altered
  */
-    otCliSetUserCommands(userCommands, 4);
+    otCliSetUserCommands(userCommands, 5);
     cli_userCommands_init(instance);
     /* Register Thread state change handler */
 //    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
     /* init GPIO LEDs */
     otSysLedInit();
     /* init GPIO BTN0 */
-    otSysButtonInit(handleButtonInterrupt);
+    //otSysButtonInit(handleButtonInterrupt);
     /* init Ethernet */
-    otSysEthernetInit();
-    otSysLwipInit();
+    //otSysEthernetInit();
     /* init Subg Radio */
-    otSysSubgRadioInit();
+    //otSysSubgRadioInit();
     /* Init CoAP */
     otCoapStart(instance, OT_DEFAULT_COAP_PORT);
-    m_coap_resources.light_resource.mContext = instance;
-    otCoapAddResource(instance, &m_coap_resources.light_resource);
+    m_coap_resources.test_resource.mContext = instance;
+    otCoapAddResource(instance, &m_coap_resources.test_resource);
+    otCoapSetDefaultHandler(instance, coap_default_response_handler, NULL);
 
     otCliOutputFormat("<info> Initialized\r\n");
 /**
@@ -217,15 +237,23 @@ pseudo_reset:
     {
         otTaskletsProcess(instance);
         otSysProcessDrivers(instance);
+        
+#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+        otTaskletsProcess(instance2);
+        otSysProcessDrivers(instance2);
+#endif
 /**
  * Altered
  */
-        otSysButtonProcess(instance);
-
-        const uint8_t txtest_a[4] = {0xDE, 0xAD, 0xBE, 0xEF};
-        const uint8_t txtest_b[4] = {0xDE, 0xCA, 0xFB, 0xAD};
-        otSysEthernetDirectWrite(4, (const uint8_t *)&txtest_a);
-        otSysSubgRadioDirectWrite(4, (const uint8_t *)&txtest_b);
+        //otSysButtonProcess(instance);
+    GPIO_PinOutSet(PORTIO_GPIO_AT86RST_PORT,PORTIO_GPIO_AT86RST_PIN);
+    GPIO_PinOutSet(PORTIO_GPIO_AT86RST2_PORT,PORTIO_GPIO_AT86RST2_PIN);
+    // GPIO_PinOutClear(PORTIO_GPIO_AT86RST_PORT,PORTIO_GPIO_AT86RST_PIN);
+    // GPIO_PinOutClear(PORTIO_GPIO_AT86RST2_PORT,PORTIO_GPIO_AT86RST2_PIN);
+    //     const uint8_t txtest_a[4] = {0xDE, 0xAD, 0xBE, 0xEF};
+    //     const uint8_t txtest_b[4] = {0xDE, 0xCA, 0xFB, 0xAD};
+    //     otSysEthernetDirectWrite(4, (const uint8_t *)&txtest_a);
+    //     otSysSubgRadioDirectWrite(4, (const uint8_t *)&txtest_b);
 /**
  * /Altered
  */        
@@ -233,15 +261,17 @@ pseudo_reset:
 
     otInstanceFinalize(instance);
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+    otInstanceFinalize(instance2);
     free(otInstanceBuffer);
 #endif
 
     goto pseudo_reset;
 
     return 0;
+    while(true){
+
+    }
 }
-
-
 
 /*
  * Provide, if required an "otPlatLog()" function

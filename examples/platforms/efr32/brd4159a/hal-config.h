@@ -91,8 +91,8 @@ emuDcdcLnCompCtrl_4u7F, /* 4.7uF DCDC capacitor */ \
 
 // $[GPIO]
 
-#define PORTIO_GPIO_LED0_PIN       (10U)
-#define PORTIO_GPIO_LED0_PORT      (gpioPortD)
+#define PORTIO_GPIO_LED0_PIN       (11U)
+#define PORTIO_GPIO_LED0_PORT      (gpioPortC)
 #define PORTIO_GPIO_LED1_PIN       (12U)
 #define PORTIO_GPIO_LED1_PORT      (gpioPortD)
 #define PORTIO_GPIO_LED2_PIN       (14U)
@@ -100,8 +100,13 @@ emuDcdcLnCompCtrl_4u7F, /* 4.7uF DCDC capacitor */ \
 #define PORTIO_GPIO_LED3_PIN       (15U)
 #define PORTIO_GPIO_LED3_PORT      (gpioPortD)
 
-#define PORTIO_GPIO_BTN0_PIN        (7U)
-#define PORTIO_GPIO_BTN0_PORT       (gpioPortF)
+#define PORTIO_GPIO_BTN0_PIN        (10U)
+#define PORTIO_GPIO_BTN0_PORT       (gpioPortD)
+
+#define PORTIO_GPIO_AT86RST_PIN     (6U)
+#define PORTIO_GPIO_AT86RST_PORT    (gpioPortF)
+#define PORTIO_GPIO_AT86RST2_PIN     (7U)
+#define PORTIO_GPIO_AT86RST2_PORT    (gpioPortF)
 // [GPIO]$
 
 // $[I2C0]
@@ -178,20 +183,67 @@ emuDcdcLnCompCtrl_4u7F, /* 4.7uF DCDC capacitor */ \
 #define HAL_SERIAL_RXWAKE_ENABLE              (0)
 #define HAL_SERIAL_IDLE_WAKE_ENABLE           (1)
 
+#ifdef BSP_SERIAL_APP_CTS_PIN
+#undef BSP_SERIAL_APP_CTS_PIN
+#endif
 #define BSP_SERIAL_APP_CTS_PIN                (11U)
+
+#ifdef BSP_SERIAL_APP_CTS_PORT
+#undef BSP_SERIAL_APP_CTS_PORT
+#endif
 #define BSP_SERIAL_APP_CTS_PORT               (gpioPortA)
+
+#ifdef BSP_SERIAL_APP_CTS_LOC
+#undef BSP_SERIAL_APP_CTS_LOC
+#endif
 #define BSP_SERIAL_APP_CTS_LOC                (15U)
 
+
+#ifdef BSP_SERIAL_APP_RTS_PIN
+#undef BSP_SERIAL_APP_RTS_PIN
+#endif
 #define BSP_SERIAL_APP_RTS_PIN                (13U)
+
+#ifdef BSP_SERIAL_APP_RTS_PORT
+#undef BSP_SERIAL_APP_RTS_PORT
+#endif
 #define BSP_SERIAL_APP_RTS_PORT               (gpioPortA)
+
+#ifdef BSP_SERIAL_APP_RTS_LOC
+#undef BSP_SERIAL_APP_RTS_LOC
+#endif
 #define BSP_SERIAL_APP_RTS_LOC                (16U)
 
+
+#ifdef BSP_SERIAL_APP_RX_PIN
+#undef BSP_SERIAL_APP_RX_PIN
+#endif
 #define BSP_SERIAL_APP_RX_PIN                 (4U)
+
+#ifdef BSP_SERIAL_APP_RX_PORT
+#undef BSP_SERIAL_APP_RX_PORT
+#endif
 #define BSP_SERIAL_APP_RX_PORT                (gpioPortF)
+
+#ifdef BSP_SERIAL_APP_RX_LOC
+#undef BSP_SERIAL_APP_RX_LOC
+#endif
 #define BSP_SERIAL_APP_RX_LOC                 (16U)
 
+
+#ifdef BSP_SERIAL_APP_TX_PIN
+#undef BSP_SERIAL_APP_TX_PIN
+#endif
 #define BSP_SERIAL_APP_TX_PIN                 (5U)
+
+#ifdef BSP_SERIAL_APP_TX_PORT
+#undef BSP_SERIAL_APP_TX_PORT
+#endif
 #define BSP_SERIAL_APP_TX_PORT                (gpioPortF)
+
+#ifdef BSP_SERIAL_APP_TX_LOC
+#undef BSP_SERIAL_APP_TX_LOC
+#endif
 #define BSP_SERIAL_APP_TX_LOC                 (18U)
 
 #define HAL_SERIAL_APP_RX_QUEUE_SIZE          (128UL)

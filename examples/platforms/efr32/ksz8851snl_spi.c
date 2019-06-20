@@ -201,9 +201,7 @@ uint16_t KSZ8851SNL_SPI_ReadRegister(uint8_t reg) {
 	txBuffer[0] |= (reg >> ADDRESS_MS2B_POS);
 	txBuffer[1] = (reg << ADDRESS_SHIFT) & 0xf0;
 
-	KSZ8851SNL_SPI_SetChipSelect(true);
 	SPIDRV_MTransferB(spiHandle, txBuffer, rxBuffer, 4);
-	KSZ8851SNL_SPI_SetChipSelect(false);
 
 	value = (rxBuffer[3] << 8) | rxBuffer[2];
 	return value;
@@ -241,9 +239,7 @@ void KSZ8851SNL_SPI_WriteRegister(uint8_t reg, uint16_t value) {
 	txBuffer[2] = value & 0xff;
 	txBuffer[3] = (value >> 8) & 0xff;
 
-	KSZ8851SNL_SPI_SetChipSelect(true);
 	KSZ8851SNL_SPI_Transmit(4, txBuffer);
-	KSZ8851SNL_SPI_SetChipSelect(false);
 }
 
 /*************************************************************************//**
@@ -273,11 +269,9 @@ void KSZ8851SNL_SPI_ReadFifo(int numBytes, uint8_t *data) {
 	uint8_t cmd = OPCODE_FIFO_READ;
 	uint8_t dummy[4];
 
-	KSZ8851SNL_SPI_SetChipSelect(true);
 	KSZ8851SNL_SPI_Transmit(1, &cmd);
 	KSZ8851SNL_SPI_Receive(4, dummy);
 	KSZ8851SNL_SPI_Receive(numBytes, data);
-	KSZ8851SNL_SPI_SetChipSelect(false);
 }
 
 /*************************************************************************//**

@@ -97,8 +97,8 @@ emuDcdcLnCompCtrl_4u7F, /* 4.7uF DCDC capacitor */ \
 #define PORTIO_GPIO_LED1_PORT      (gpioPortD)
 #define PORTIO_GPIO_LED2_PIN       (14U)
 #define PORTIO_GPIO_LED2_PORT      (gpioPortD)
-#define PORTIO_GPIO_LED3_PIN       (15U)
-#define PORTIO_GPIO_LED3_PORT      (gpioPortD)
+#define PORTIO_GPIO_LED3_PIN       (6U)
+#define PORTIO_GPIO_LED3_PORT      (gpioPortF)
 
 #define PORTIO_GPIO_BTN0_PIN        (10U)
 #define PORTIO_GPIO_BTN0_PORT       (gpioPortD)

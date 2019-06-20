@@ -43,9 +43,17 @@ extern "C" {
 
 void otSysEthernetInit(void);
 void otSysEthernetDirectWrite(int numBytes, const uint8_t * data);
+uint16_t OTKSZ8851SNLReadRegister(uint8_t reg);
+void otSysChargenit();
+
 
 void otSysSubgRadioInit(void);
 void otSysSubgRadioDirectWrite(int numBytes, const uint8_t * data);
+uint8_t otSysSubgRadioDirectReadRegister(uint8_t reg);
+void otSysSubgRadioFrameWrite(int numBytes, const uint8_t *data);
+uint8_t *otSysSubgRadioDirectReadFrame();
+void otSysSubgRadioTest(void);
+
 
 /**
  * Init LED module

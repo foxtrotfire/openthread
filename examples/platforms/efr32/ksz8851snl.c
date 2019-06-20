@@ -19,7 +19,9 @@
 #include "ksz8851snl.h"
 #include "ksz8851snl_spi.h"
 #include "em_assert.h"
-#include "em_cmu.h"
+
+#include "lwip/sys.h"
+#include "lwipopts.h"
 
 
 /**************************************************************************//**

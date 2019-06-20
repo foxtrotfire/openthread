@@ -294,4 +294,11 @@
 #define TRAC_STATUS_NO_ACK                 5
 #define TRAC_STATUS_INVALID                7
 
+
+#define AT86RF212_REG_WRITE_FLAG     (0xC0)
+#define AT86RF212_REG_READ_FLAG      (0x80)
+#define AT86RF212_FRAME_WRITE_FLAG   (0x60)
+#define AT86RF212_FRAME_READ_FLAG    (0x20)
+#define AT86RF212_SRAM_WRITE_FLAG    (0x40)
+#define AT86RF212_SRAM_READ_FLAG (0x00)
 #endif // _AT86RF212_H_

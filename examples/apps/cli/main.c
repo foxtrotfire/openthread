@@ -40,14 +40,14 @@
 /**
  * Altered
  */
-#include <openthread/instance.h>
-#include <openthread/thread.h>
-#include <openthread/thread_ftd.h>
-#include <openthread/coap.h>
-#include <openthread/message.h>
+#include "em_gpio.h"
 #include "stdlib.h"
 #include "string.h"
-#include "em_gpio.h"
+#include <openthread/coap.h>
+#include <openthread/instance.h>
+#include <openthread/message.h>
+#include <openthread/thread.h>
+#include <openthread/thread_ftd.h>
 
 #include "userCoap.h"
 #include "userCommands.h"
@@ -88,57 +88,56 @@ void otTaskletsSignalPending(otInstance *aInstance)
  * Altered
  */
 
-static void handleButtonInterrupt(otInstance *aInstance);
+// static void handleButtonInterrupt(otInstance *aInstance);
 
 void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext)
 {
-   if ((aFlags & OT_CHANGED_THREAD_ROLE) != 0)
-   {
-       otDeviceRole changedRole = otThreadGetDeviceRole(aContext);
+    if ((aFlags & OT_CHANGED_THREAD_ROLE) != 0)
+    {
+        otDeviceRole changedRole = otThreadGetDeviceRole(aContext);
 
-       switch (changedRole)
-       {
-       case OT_DEVICE_ROLE_LEADER:
-           otSysLedSet(0, true);
-           otSysLedSet(1, true);
-           otSysLedSet(2, true);
-           break;
+        switch (changedRole)
+        {
+        case OT_DEVICE_ROLE_LEADER:
+            otSysLedSet(0, true);
+            otSysLedSet(1, true);
+            otSysLedSet(2, true);
+            break;
 
-       case OT_DEVICE_ROLE_ROUTER:
-           otSysLedSet(0, true);
-           otSysLedSet(1, false);
-           otSysLedSet(2, true);
-           break;
-       
-       case OT_DEVICE_ROLE_CHILD:
-           otSysLedSet(0, true);
-           otSysLedSet(1, true);
-           otSysLedSet(2, false);
-           break;
-       
-       case OT_DEVICE_ROLE_DETACHED:
-           otSysLedSet(0, true);
-           otSysLedSet(1, false);
-           otSysLedSet(2, false);
-           break;
+        case OT_DEVICE_ROLE_ROUTER:
+            otSysLedSet(0, true);
+            otSysLedSet(1, false);
+            otSysLedSet(2, true);
+            break;
 
-       case OT_DEVICE_ROLE_DISABLED:
-           otSysLedSet(0, false);
-           otSysLedSet(1, false);
-           otSysLedSet(2, false);
-           break;
+        case OT_DEVICE_ROLE_CHILD:
+            otSysLedSet(0, true);
+            otSysLedSet(1, true);
+            otSysLedSet(2, false);
+            break;
+
+        case OT_DEVICE_ROLE_DETACHED:
+            otSysLedSet(0, true);
+            otSysLedSet(1, false);
+            otSysLedSet(2, false);
+            break;
+
+        case OT_DEVICE_ROLE_DISABLED:
+            otSysLedSet(0, false);
+            otSysLedSet(1, false);
+            otSysLedSet(2, false);
+            break;
         }
     }
 }
 
 void handleButtonInterrupt(otInstance *aInstance)
 {
-    GPIO_IntClear(1<<7U);
-    GPIO_IntDisable(1<<7U);
+    GPIO_IntClear(1 << 7U);
+    GPIO_IntDisable(1 << 7U);
     coap_get_inuse_request_send(aInstance, "0", coap_server_address);
-    GPIO_IntEnable(1<<7U);
+    GPIO_IntEnable(1 << 7U);
 }
-
 
 /**
  * /Altered
@@ -184,20 +183,20 @@ pseudo_reset:
     assert(instance);
 
     otCliUartInit(instance);
-/**
- * Altered
- */
+    /**
+     * Altered
+     */
     otCliSetUserCommands(userCommands, 4);
     cli_userCommands_init(instance);
     /* Register Thread state change handler */
-//    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
+    //    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
     /* init GPIO LEDs */
     otSysLedInit();
     /* init GPIO BTN0 */
-    otSysButtonInit(handleButtonInterrupt);
+    // otSysButtonInit(handleButtonInterrupt);
     /* init Ethernet */
-    otSysEthernetInit();
-    otSysLwipInit();
+    //   otSysEthernetInit();
+    //   otSysLwipInit();
     /* init Subg Radio */
     otSysSubgRadioInit();
     /* Init CoAP */
@@ -206,6 +205,8 @@ pseudo_reset:
     otCoapAddResource(instance, &m_coap_resources.light_resource);
 
     otCliOutputFormat("<info> Initialized\r\n");
+    otSysSubgRadioTest();
+
 /**
  * /Altered
  */
@@ -213,22 +214,30 @@ pseudo_reset:
     otDiagInit(instance);
 #endif
 
+    // const uint8_t data[5] = {0x00, 0x01, 0x02, 0x03, 0x04};
+    // uint8_t test;
     while (!otSysPseudoResetWasRequested())
     {
         otTaskletsProcess(instance);
         otSysProcessDrivers(instance);
-/**
- * Altered
- */
-        otSysButtonProcess(instance);
+        /**
+         * Altered
+         */
+        // otSysButtonProcess(instance);
+        // otSysChargenit();
 
-        const uint8_t txtest_a[4] = {0xDE, 0xAD, 0xBE, 0xEF};
-        const uint8_t txtest_b[4] = {0xDE, 0xCA, 0xFB, 0xAD};
-        otSysEthernetDirectWrite(4, (const uint8_t *)&txtest_a);
-        otSysSubgRadioDirectWrite(4, (const uint8_t *)&txtest_b);
-/**
- * /Altered
- */        
+        // uint8_t *data = otSysSubgRadioDirectReadFrame();
+
+        // otSysSubgRadioFrameWrite(sizeof(data), data);
+        // otCliOutputFormat("PART ID: %i\r\n", otSysSubgRadioDirectReadRegister(0x1C));
+        for (int i = 0; i < 100000; i++)
+        {
+            __asm("nop");
+        }
+
+        /**
+         * /Altered
+         */
     }
 
     otInstanceFinalize(instance);
@@ -240,8 +249,6 @@ pseudo_reset:
 
     return 0;
 }
-
-
 
 /*
  * Provide, if required an "otPlatLog()" function

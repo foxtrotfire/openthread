@@ -42,11 +42,12 @@ void otSysLedInit(void)
     GPIO_PinModeSet(PORTIO_GPIO_LED0_PORT, PORTIO_GPIO_LED0_PIN, gpioModePushPull, 0);
     GPIO_PinModeSet(PORTIO_GPIO_LED1_PORT, PORTIO_GPIO_LED1_PIN, gpioModePushPull, 0);
     GPIO_PinModeSet(PORTIO_GPIO_LED2_PORT, PORTIO_GPIO_LED2_PIN, gpioModePushPull, 0);
-    GPIO_PinModeSet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN, gpioModePushPull, 0);
+    // GPIO_PinModeSet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN, gpioModePushPull, 0);
 }
 
 void otSysButtonInit(otSysButtonCallback aCallback)
 {
+    
     /* Configure GPIO clock */
     CMU_ClockEnable(cmuClock_GPIO, true);
     /* Enable IRQ for button */
@@ -111,11 +112,11 @@ void otSysLedSet(uint8_t aLed, bool aOn)
         case 3: 
             if(aOn)
             {
-                GPIO_PinOutSet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
+                // GPIO_PinOutSet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
             }
             else
             {
-                GPIO_PinOutClear(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
+                // GPIO_PinOutClear(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
             }
             break;
         default:
@@ -160,16 +161,16 @@ void otSysLedToggle(uint8_t aLed)
                 GPIO_PinOutSet(PORTIO_GPIO_LED2_PORT, PORTIO_GPIO_LED2_PIN);
             }
             break;
-        case 3: 
-            if(GPIO_PinOutGet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN))
-            {
-                GPIO_PinOutClear(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
-            }
-            else
-            {
-                GPIO_PinOutSet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
-            }
-            break;
+        // case 3: 
+        //     if(GPIO_PinOutGet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN))
+        //     {
+        //         GPIO_PinOutClear(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
+        //     }
+        //     else
+        //     {
+        //         GPIO_PinOutSet(PORTIO_GPIO_LED3_PORT, PORTIO_GPIO_LED3_PIN);
+        //     }
+        //     break;
         default:
             break;
     }

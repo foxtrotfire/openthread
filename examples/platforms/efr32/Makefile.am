@@ -88,8 +88,9 @@ libopenthread_efr32_a_CPPFLAGS                                                = 
     -I$(EFR32MG_SDK_SRCDIR)/util/plugin/plugin-common/fem-control               \
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/test/unit                \
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip-contrib/ports/efm32/include \
+    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include	        \
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/ipv4         \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/ipv4	/include\
+    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/ipv4/lwip    \
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/ipv6	 	\
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/api         		\
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/core         	\
@@ -97,8 +98,7 @@ libopenthread_efr32_a_CPPFLAGS                                                = 
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/core/snmp         	\
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/netif         	\
     -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/netif/ppp         	\
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include              \
-    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip/src/include/lwip         \
+    -I$(EFR32MG_SDK_SRCDIR)/util/third_party/lwip/lwip-contrib/apps/ping	\
     -I$(top_srcdir)/third_party/mbedtls/repo/include/mbedtls			\
     -I$(top_srcdir)/third_party/mbedtls/repo/sl_crypto/include			\
     -Wno-unused-parameter                                                       \
@@ -115,8 +115,6 @@ PLATFORM_SOURCES                                                              = 
     flash.c                                                                     \
     gpio.c                                                                      \
     logging.c                                                                   \
-    lwip.c                                                                      \
-    ethernet.c                                                                  \
     ksz8851snl.c                                                                \
     ksz8851snl_spi.c                                                            \
     misc.c                                                                      \
@@ -164,6 +162,7 @@ nodist_libopenthread_efr32_a_SOURCES                                            
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/mbedtls/sl_crypto/src/crypto_ecp.c                    \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/mbedtls/sl_crypto/src/crypto_management.c             \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/mbedtls/sl_crypto/src/aes_aes.c            		  \
+    @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/netif/etharp.c			  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/def.c				  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/dhcp.c				  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/dns.c				  \
@@ -183,10 +182,11 @@ nodist_libopenthread_efr32_a_SOURCES                                            
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/autoip.c			  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/icmp.c			  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/igmp.c			  \
-    @top_builddir@/third_party/silabs/gecko_sdk_Ssuite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/inet.c			  \
+    @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/inet.c			  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/ip.c			  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/ip_addr.c			  \
     @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/ip_frag.c			  \
+    @top_builddir@/third_party/silabs/gecko_sdk_suite/v2.5/util/third_party/lwip/lwip/src/core/ipv4/inet_chksum.c		  \
     $(NULL)
 
 noinst_HEADERS                                                                = \

@@ -115,7 +115,6 @@ PLATFORM_SOURCES                                                              = 
     flash.c                                                                     \
     gpio.c                                                                      \
     logging.c                                                                   \
-    ethernet.c                                                                  \
     ksz8851snl.c                                                                \
     ksz8851snl_spi.c                                                            \
     misc.c                                                                      \

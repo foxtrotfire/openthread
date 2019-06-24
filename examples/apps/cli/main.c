@@ -99,7 +99,6 @@ void otTaskletsSignalPending(otInstance *aInstance)
  * Altered
  */
 
-//static void handleButtonInterrupt(otInstance *aInstance);
 
 void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext)
 {
@@ -142,13 +141,7 @@ void OTCALL handleNetifStateChanged(uint32_t aFlags, void *aContext)
     }
 }
 
-// void handleButtonInterrupt(otInstance *aInstance)
-// {
-//     GPIO_IntClear(1<<7U);
-//     GPIO_IntDisable(1<<7U);
-//     coap_get_inuse_request_send(aInstance, "0", coap_server_address);
-//     GPIO_IntEnable(1<<7U);
-// }
+
 
 /**
  * /Altered
@@ -210,21 +203,22 @@ pseudo_reset:
     //    otSetStateChangedCallback(instance, handleNetifStateChanged, instance);
     /* init GPIO LEDs */
     otSysLedInit();
-    /* init GPIO BTN0 */
-    // otSysButtonInit(handleButtonInterrupt);
     /* init Ethernet */
-    //   otSysEthernetInit();
-    //   otSysLwipInit();
+      otSysEthernetInit();
+    /* LwIP does not compile yet so it's disabled and removed from Makefile.am */
+    //   otSysLwipInit(); 
     /* init Subg Radio */
-    //otSysSubgRadioInit();
-    /* Init CoAP */
-    otCoapStart(instance, OT_DEFAULT_COAP_PORT);
+      otSysSubgRadioInit();
+    /* Init CoAP */    
+    otCoapSetDefaultHandler(instance, coap_default_response_handler, NULL);    
+    otCoapAddResource(instance, &m_coap_resources.test_resource);    
     m_coap_resources.test_resource.mContext = instance;
-    otCoapAddResource(instance, &m_coap_resources.test_resource);
-    otCoapSetDefaultHandler(instance, coap_default_response_handler, NULL);
+    otCoapStart(instance, OT_DEFAULT_COAP_PORT);
 
     otCliOutputFormat("<info> Initialized\r\n");
-    otSysSubgRadioTest();
+
+    /* perform subg radio test once */
+    //   otSysSubgRadioTest();
 
 /**
  * /Altered
@@ -233,8 +227,7 @@ pseudo_reset:
     otDiagInit(instance);
 #endif
 
-    // const uint8_t data[5] = {0x00, 0x01, 0x02, 0x03, 0x04};
-    // uint8_t test;
+
     while (!otSysPseudoResetWasRequested())
     {
         otTaskletsProcess(instance);

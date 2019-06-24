@@ -10,10 +10,11 @@
 #include <openthread/message.h>
 #include "stdlib.h"
 #include "string.h"
+#include "stdio.h"
 #include "userCoap.h"
 
 char coap_server_address[] = "2018:db8:1:ffff::ac11:1";
-char CID                   = '3'; // identifies this specific device
+char CID                   = '1'; // identifies this specific device
 
 
 void coap_print_payload(otMessage *aMessage){
@@ -575,7 +576,9 @@ void coap_test_response_send(void                * p_context,
                                 otCoapMessageGetTokenLength(p_request_message));
 
             otCoapMessageSetPayloadMarker(p_response);
-            result = otMessageAppend(p_response, "Test Received", 13);
+            char payload[24];
+            snprintf(payload, sizeof(payload), "Test response from CID%c", CID);
+            result = otMessageAppend(p_response, payload, sizeof(payload));
             if (result == OT_ERROR_NONE){
                 if (p_response == NULL)
                 {

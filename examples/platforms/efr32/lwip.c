@@ -204,7 +204,7 @@ void lwIPInit(const unsigned char *pucMAC,
                                                                               *****************************************************************************/
 
 
-void otSysLwipInit(void)
+void otSysLwipInit()
 {
     unsigned char pucMACArray[8];
 

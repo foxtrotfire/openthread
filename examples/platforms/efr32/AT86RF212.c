@@ -47,7 +47,6 @@ void AT86RF212_Init(void)
     AT86RF212_SPI_WriteRegister(TRX_CTRL_1_REG, (1 << TX_AUTO_CRC_ON) | (3 << SPI_CMD_MODE) | (1 << IRQ_MASK_MODE));
 
     AT86RF212_SPI_WriteRegister(TRX_CTRL_2_REG, (1 << RX_SAFE_MODE));
-    transmissionTest();
     
 }
 

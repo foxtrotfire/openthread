@@ -41,10 +41,12 @@
 extern "C" {
 #endif
 
+
+void otSysLwipInit(void);
 void otSysEthernetInit(void);
 void otSysEthernetDirectWrite(int numBytes, const uint8_t * data);
 uint16_t OTKSZ8851SNLReadRegister(uint8_t reg);
-void otSysChargenit();
+void otSysChargenit(void);
 
 
 void otSysSubgRadioInit(void);

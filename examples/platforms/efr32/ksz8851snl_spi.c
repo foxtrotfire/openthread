@@ -95,6 +95,10 @@ void KSZ8851SNL_SPI_Init(void) {
 
 }
 
+void otSysEthernetInit() {
+	KSZ8851SNL_SPI_Init();
+}
+
 /**************************************************************************//**
  * @brief
  *   Transmits a series of bytes over the spi link
